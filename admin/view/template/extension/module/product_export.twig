@@ -1,10 +1,17 @@
-{{ header }}{{ column_left }}
+{{ header }}
+{{ column_left }}
+
 <div id="content">
   <div class="page-header">
     <div class="container-fluid">
       <div class="pull-right">
-        <button type="submit" form="form-module" data-toggle="tooltip" title="{{ button_save }}" class="btn btn-primary"><i class="fa fa-save"></i></button>
-        <a href="{{ cancel }}" data-toggle="tooltip" title="{{ button_cancel }}" class="btn btn-default"><i class="fa fa-reply"></i></a></div>
+        <button type="submit" form="form-module" data-toggle="tooltip" title="{{ button_save }}" class="btn btn-primary">
+          <i class="fa fa-save"></i>
+        </button>
+        <a href="{{ cancel }}" data-toggle="tooltip" title="{{ button_cancel }}" class="btn btn-default">
+          <i class="fa fa-reply"></i>
+        </a>
+      </div>
       <h1>{{ heading_title }}</h1>
       <ul class="breadcrumb">
         {% for breadcrumb in breadcrumbs %}
@@ -13,41 +20,203 @@
       </ul>
     </div>
   </div>
+
   <div class="container-fluid">
     {% if error_warning %}
-    <div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> {{ error_warning }}
+    <div class="alert alert-danger alert-dismissible">
+      <i class="fa fa-exclamation-circle"></i> {{ error_warning }}
       <button type="button" class="close" data-dismiss="alert">&times;</button>
     </div>
     {% endif %}
+
     <div class="panel panel-default">
       <div class="panel-heading">
         <h3 class="panel-title"><i class="fa fa-pencil"></i> {{ text_edit }}</h3>
       </div>
       <div class="panel-body">
-        <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-module">
-          <div class="form-group">
-            <label class="col-sm-2 control-label" for="input-status">{{ entry_status }}</label>
-            <div class="col-sm-10">
-              <select name="module_product_export_status" id="input-status" class="form-control">
-                {% if module_product_export_status %}
-                <option value="1" selected="selected">{{ text_enabled }}</option>
-                <option value="0">{{ text_disabled }}</option>
-                {% else %}
-                <option value="1">{{ text_enabled }}</option>
-                <option value="0" selected="selected">{{ text_disabled }}</option>
-                {% endif %}
-              </select>
-            </div>
-          </div>
-        </form>
-        <br />
-        <br />
-        <div class="text-center">
-            <a href="{{ export }}" class="btn btn-primary">{{ button_export }}</a>
-            <a href="{{ export_xml }}" class="btn btn-primary">{{ button_export_xml }}</a>
-        </div>
+
+        <div class="mt-4">
+  <h4>{{ text_export_buttons }}</h4>
+
+  <div class="row export-btn-row">
+    {% set button_classes = 'btn btn-primary d-flex align-items-center gap-2 export_buttons' %}
+
+    <!-- Group: Product Data -->
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_data }}" class="{{ button_classes }}">
+        <i class="fa fa-database"></i> {{ button_export_data }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_descriptions }}" class="{{ button_classes }}">
+        <i class="fa fa-file-text-o"></i> {{ button_export_descriptions }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_images }}" class="{{ button_classes }}">
+        <i class="fa fa-picture-o"></i> {{ button_export_images }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_attributes }}" class="{{ button_classes }}">
+        <i class="fa fa-tags"></i> {{ button_export_attributes }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_options }}" class="{{ button_classes }}">
+        <i class="fa fa-list-alt"></i> {{ button_export_options }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_option_values }}" class="{{ button_classes }}">
+        <i class="fa fa-check-square-o"></i> {{ button_export_option_values }}
+      </a>
+    </div>
+
+    <!-- Group: Relations & Discounts -->
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_p_to_cat }}" class="{{ button_classes }}">
+        <i class="fa fa-folder-open"></i> {{ button_export_p_to_cat }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_p_to_store }}" class="{{ button_classes }}">
+        <i class="fa fa-building-o"></i> {{ button_export_p_to_store }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_p_related }}" class="{{ button_classes }}">
+        <i class="fa fa-link"></i> {{ button_export_p_related }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_p_specials }}" class="{{ button_classes }}">
+        <i class="fa fa-star"></i> {{ button_export_p_specials }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_p_discounts }}" class="{{ button_classes }}">
+        <i class="fa fa-percent"></i> {{ button_export_p_discounts }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_p_rewards }}" class="{{ button_classes }}">
+        <i class="fa fa-gift"></i> {{ button_export_p_rewards }}
+      </a>
+    </div>
+  </div>
+</div>
+<hr>
+<div>
+  <h4>{{ text_customer_data }}</h4>
+  <div class="row export-btn-row">
+    {% set button_classes = 'btn btn-primary d-flex align-items-center gap-2 export_buttons' %}
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_customers }}" class="{{ button_classes }}">
+        <i class="fa fa-users"></i> {{ button_export_customers }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_customer_groups }}" class="{{ button_classes }}">
+        <i class="fa fa-group"></i> {{ button_export_customer_groups }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_customer_addresses }}" class="{{ button_classes }}">
+        <i class="fa fa-address-book-o"></i> {{ button_export_customer_addresses }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_customer_affiliates }}" class="{{ button_classes }}">
+        <i class="fa fa-handshake-o"></i> {{ button_export_customer_affiliates }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_customer_transactions }}" class="{{ button_classes }}">
+        <i class="fa fa-credit-card"></i> {{ button_export_customer_transactions }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_customer_rewards }}" class="{{ button_classes }}">
+        <i class="fa fa-trophy"></i> {{ button_export_customer_rewards }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_customer_ips }}" class="{{ button_classes }}">
+        <i class="fa fa-map-marker"></i> {{ button_export_customer_ips }}
+      </a>
+    </div>
+  </div>
+</div>
+<hr>
+<div>
+  <h4>{{ text_order_data }}</h4>
+  <div class="row export-btn-row">
+    {% set button_classes = 'btn btn-primary d-flex align-items-center gap-2 export_buttons' %}
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_orders }}" class="{{ button_classes }}">
+        <i class="fa fa-file-excel-o"></i> {{ button_export_orders }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_order_products }}" class="{{ button_classes }}">
+        <i class="fa fa-cube"></i> {{ button_export_order_products }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_order_options }}" class="{{ button_classes }}">
+        <i class="fa fa-list"></i> {{ button_export_order_options }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_order_totals }}" class="{{ button_classes }}">
+        <i class="fa fa-calculator"></i> {{ button_export_order_totals }}
+      </a>
+    </div>
+    <div class="col-sm-6 col-md-4 mb-3">
+      <a href="{{ export_order_histories }}" class="{{ button_classes }}">
+        <i class="fa fa-history"></i> {{ button_export_order_histories }}
+      </a>
+    </div>
+  </div>
+</div>
+<hr>
+<div class="mb-4">
+  <h4>Export Any Table</h4>
+  <div class="form-inline">
+    <div class="form-group">
+      <label for="table_name">Select Table:</label>
+      <select name="table" id="table_name" class="form-control" style="min-width:200px; margin:0 10px;">
+        {% for table in all_tables %}
+        <option value="{{ table }}">{{ table }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="button" id="btn-export-table" class="btn btn-success"><i class="fa fa-download"></i> Export Table</button>
+  </div>
+</div>
+<script>
+  document.getElementById('btn-export-table').onclick = function() {
+    var table = document.getElementById('table_name').value;
+    var url = '{{ export_table_url|replace({'&amp;':'&'}) }}';
+    url += '&table=' + encodeURIComponent(table);
+    window.open(url, '_blank');
+  };
+</script>
       </div>
     </div>
   </div>
 </div>
+<style>
+  .export_buttons {
+  margin-bottom: 10px; /* Adjust as needed */
+}
+.export_buttons i{
+  margin-right: 10px; /* Adjust as needed */
+}
+.export-btn-wrapper:last-child {
+  margin-bottom: 0;
+}
+</style>
+
 {{ footer }}
