@@ -59,13 +59,15 @@ class ControllerExtensionModuleProductExport extends Controller {
 
         $filename = "product_export_" . date('Y-m-d') . ".csv";
 
-        header("Content-Type: text/csv");
+        header("Content-Type: text/csv; charset=utf-8");
         header("Content-Disposition: attachment; filename=\"" . $filename . "\"");
         header("Cache-Control: no-cache, no-store, must-revalidate"); // HTTP 1.1
         header("Pragma: no-cache"); // HTTP 1.0
         header("Expires: 0"); // Proxies
 
         $output = fopen('php://output', 'w');
+
+        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
         fputcsv($output, array('Product ID', 'Name', 'Model', 'Price'));
 
