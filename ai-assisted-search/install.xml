@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+    <code></code>
+    <name>Gemini AI Assisted Search by iextendlabs.com</name>
+    <version></version>
+    <author>Saqib Ashraf || support@iextendlabs.com</author>
+    <link>https://iextendlabs.com</link>
+    <file path="catalog/model/catalog/product.php">
+        <operation>
+            <search>
+                <![CDATA[$sql .= " OR LCASE(p.mpn) = '" . $this->db->escape(utf8_strtolower($data['filter_name'])) . "'";]]>
+            </search>
+            <add position="after">
+                <![CDATA[
+        }
+        if (!empty($this->request->get['product_ids'])) {
+            $sql .= " OR p.product_id IN (" . $this->request->get['product_ids'] . ")";
+
+			]]>
+            </add>
+        </operation>
+    </file>
+    <file path="catalog/controller/product/search.php">
+        <operation>
+            <search>
+                <![CDATA[class ControllerProductSearch extends Controller {]]>
+            </search>
+            <add position="after">
+                <![CDATA[
+    private function callGeminiAPI(string $apiKey, string $prompt, string $model = 'gemini-pro'): string
+	{
+		// The API endpoint for the Gemini 'generateContent' method
+		$url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+
+		// Construct the payload for the API request
+		$payload = [
+			'contents' => [
+				[
+					'parts' => [
+						['text' => $prompt]
+					]
+				]
+			],
+			// You can add 'generationConfig' and 'safetySettings' here if needed.
+			// For example:
+			// 'generationConfig' => [
+			//     'temperature' => 0.9,
+			//     'topK' => 1,
+			//     'topP' => 1,
+			//     'maxOutputTokens' => 2000,
+			// ],
+			// 'safetySettings' => [
+			//     ['category' => 'HARM_CATEGORY_HARASSMENT', 'threshold' => 'BLOCK_NONE'],
+			//     ['category' => 'HARM_CATEGORY_HATE_SPEECH', 'threshold' => 'BLOCK_NONE'],
+			//     ['category' => 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold' => 'BLOCK_NONE'],
+			//     ['category' => 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold' => 'BLOCK_NONE'],
+			// ],
+		];
+
+		$json_payload = json_encode($payload);
+
+		// Initialize cURL session
+		$ch = curl_init($url);
+
+		// Set cURL options
+		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST"); // Set HTTP method to POST
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $json_payload); // Attach the JSON payload
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // Return the response as a string
+		curl_setopt($ch, CURLOPT_HTTPHEADER, [
+			'Content-Type: application/json', // Set Content-Type header
+			'Content-Length: ' . strlen($json_payload) // Set Content-Length header
+		]);
+		// Important for local development if you encounter SSL certificate issues,
+		// but should ideally be false in a production environment with proper certs.
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
+		// Execute the cURL request
+		$response = curl_exec($ch);
+
+		// Check for cURL errors
+		if (curl_errno($ch)) {
+			$error_msg = curl_error($ch);
+			curl_close($ch);
+			return '';
+		}
+
+		// Close cURL session
+		curl_close($ch);
+
+		// Decode the JSON response
+		$responseData = json_decode($response, true);
+
+		// Check if the response contains the generated text
+		if (isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
+			return $responseData['candidates'][0]['content']['parts'][0]['text'];
+		}
+		return '';
+	}
+	private function extractSqlQuery(string $text): ?string
+	{
+		if (preg_match('/(?:^|\s*)(sql\s*)?SELECT.*?;\s*.*$/si', $text, $matches)) {
+			$select_pos = stripos($matches[0], 'SELECT');
+			if ($select_pos !== false) {
+				$extracted = substr($matches[0], $select_pos);
+				$semicolon_pos = strpos($extracted, ';');
+				if ($semicolon_pos !== false) {
+					$extracted = substr($extracted, 0, $semicolon_pos + 1);
+				}
+				return trim($extracted);
+			}
+		}
+		return null;
+	}
+	private function getQuery(string $search): string
+	{
+		$apiKey = $this->config->get('module_ai_search_api_key');
+		$prompt = "Generate a SQL query to search for products in an opencart database based on the following search term: '{$search}', you can add synonyms of the search term to the query if needed. The query should return product ids. Return only the SQL query without any additional text.";
+		$model_name = $this->config->get('module_ai_search_model');
+		$query = $this->callGeminiAPI($apiKey, $prompt, $model_name);
+		return $query;
+	}
+	private function getProductIdsFromQuery($search)
+	{
+		if (!empty($search)) {
+			$ai_result = $this->getQuery($search);
+			$sql = $this->extractSqlQuery($ai_result);
+			if ($sql) {
+				// Execute the SQL query to get product IDs
+				$query = $this->db->query($sql);
+				if ($query->num_rows) {
+					return implode(',', array_column($query->rows, 'product_id'));
+				}
+			}
+		}
+		return '';
+	}
+
+
+			]]>
+            </add>
+        </operation>
+        <operation>
+            <search>
+                <![CDATA[public function index() {]]>
+            </search>
+            <add position="after">
+                <![CDATA[
+
+    $this->request->get['product_ids'] = $this->getProductIdsFromQuery($this->request->get['search']);
+    ]]>
+            </add>
+        </operation>
+    </file>
+</modification>
