@@ -1,0 +1,665 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+  <code>CPD-IE</code>
+	<name>Custom Product Designer By iExtend Labs</name>
+	<version>1.0</version>
+	<author>iExtend Labs || support@iextendlabs.com</author>
+	<link>http://iextendlabs.com</link>
+
+  <file path="system/library/cart/cart.php">
+    <operation>
+      <search><![CDATA[$option_data = array();]]></search>
+      <add position="before"><![CDATA[$custom_data = $cart['custom_data'];]]></add>
+    </operation>
+
+    <operation>
+      <search><![CDATA[$product_data[] = array(]]></search>
+      <add position="after"><![CDATA['custom_data'     => $custom_data,]]></add>
+    </operation>
+
+    <operation>
+      <search><![CDATA[public function add($product_id, $quantity = 1, $option = array(), $recurring_id = 0) {]]></search>
+      <add position="replace"><![CDATA[
+      public function add($product_id, $quantity = 1, $option = array(), $custom_data = null, $recurring_id = 0) {
+		
+			$custom = $custom_data ? ",custom_data = '" . $this->db->escape($custom_data) . "'": "";
+      if ($custom_data){
+        $this->db->query("INSERT " . DB_PREFIX . "cart SET api_id = '" . (isset($this->session->data['api_id']) ? (int)$this->session->data['api_id'] : 0) . "', customer_id = '" . (int)$this->customer->getId() . "', session_id = '" . $this->db->escape($this->session->getId()) . "', product_id = '" . (int)$product_id . "', recurring_id = '" . (int)$recurring_id . "', `option` = '" . $this->db->escape(json_encode($option)) . "', quantity = '" . (int)$quantity . "', date_added = NOW()".$custom);
+      return;
+      }
+      
+      ]]></add>
+    </operation>
+	</file>
+
+  <file path="admin/controller/catalog/product.php">
+    <operation>
+      <search><![CDATA[if (isset($this->request->post['product_special'])) {]]></search>
+      <add position="before"><![CDATA[
+
+        $data['iframe_url'] = $this->config->get('module_customdesigncart_iframe_url');
+        $data['custom_design_cart'] = $this->config->get('module_customdesigncart_status');
+
+        if ($this->request->server['HTTPS']) {
+          $data['base'] = HTTPS_CATALOG;
+        } else {
+          $data['base'] = HTTP_CATALOG;
+        }
+      ]]></add>
+    </operation>
+
+
+    <operation>
+      <search><![CDATA[$this->load->model('setting/store');]]></search>
+      <add position="before"><![CDATA[
+        if (!empty($product_info)) {
+          $data['product_id'] = $product_info['product_id'];
+        }
+      ]]></add>
+    </operation>
+  </file>
+
+  <file path="admin/language/en-gb/catalog/product.php">
+    <operation>
+      <search><![CDATA[$_['heading_title']          = 'Products';]]></search>
+      <add position="after"><![CDATA[
+        // Product Customization
+        $_['entry_add_custom_product']              = 'Add Custom Product';
+        $_['text_Customization']               = 'Product Customization';
+        $_['text_below_product_editor']        = 'Click the button below to open the product editor.';
+        $_['text_Configure_product']           = 'Configure';
+        $_['text_clear_product_config']      = 'Clear / Disable Customization';
+        $_['text_Product_Editor']              = 'Product Editor';
+        //  btntons
+        $_['btn_save']                         = 'save';
+        $_['btn_close_editor']                 = 'Close Editor';
+        $_['text_no_customization']            = 'Save Product once and then edit to add customization.';
+      ]]></add>
+    </operation>
+  </file>
+
+  <file path="admin/controller/sale/order.php">
+    <operation>
+      <search><![CDATA[public function info() {]]></search>
+      <add position="after"><![CDATA[
+        $data['iframe_url'] = $this->config->get('module_customdesigncart_iframe_url');
+		    $data['custom_design_cart'] = $this->config->get('module_customdesigncart_status');
+        if ($this->request->server['HTTPS']) {
+          $data['base'] = HTTPS_CATALOG;
+        } else {
+          $data['base'] = HTTP_CATALOG;
+        }
+      ]]></add>
+    </operation>
+
+    <operation>
+      <search><![CDATA[$data['products'][] = array(]]></search>
+      <add position="before"><![CDATA[$custom_data = $this->model_sale_order->getOrderCustoms($this->request->get['order_id'], $product['order_product_id']);]]></add>
+    </operation>
+
+    <operation>
+      <search><![CDATA[$data['products'][] = array(]]></search>
+      <add position="after"><![CDATA['custom_data'           => $custom_data,]]></add>
+    </operation>
+  </file>
+
+
+  <file path="admin/model/sale/order.php">
+    <operation>
+      <search><![CDATA[public function getOrderVouchers($order_id) {]]></search>
+      <add position="before"><![CDATA[
+        public function getOrderCustoms($order_id, $order_product_id) {
+          $query = $this->db->query("SELECT * FROM " . DB_PREFIX . "order_custom WHERE order_id = '" . (int)$order_id . "' AND order_product_id = '" . (int)$order_product_id . "'");
+
+          return $query->rows;
+        }
+      ]]></add>
+    </operation>
+  </file>
+
+  <file path="admin/view/template/catalog/product_form.twig">
+    <operation>
+      <search><![CDATA[<li><a href="#tab-links" data-toggle="tab">{{ tab_links }}</a></li>]]></search>
+      <add position="before"><![CDATA[{% if custom_design_cart %}<li><a href="#tab-custom" data-toggle="tab">{{ entry_add_custom_product }}</a></li>{% endif %}]]></add>
+    </operation>
+
+    <operation>
+      <search><![CDATA[<div class="tab-pane" id="tab-links">]]></search>
+      <add position="before"><![CDATA[
+             {% if custom_design_cart %}
+  <div class="tab-pane" id="tab-custom">
+    <div class="form-group">
+      <label class="col-sm-2 control-label" for="input-single-product">Product</label>
+      <div class="col-sm-10">
+        <input type="text" name="product_custom" value="" placeholder="Product" id="input-single-product" class="form-control" />
+      </div>
+    </div>
+
+    <div class="text-center">
+      {% if product_description|length > 0 %}
+        <button type="button" class="btn btn-primary shadow-sm" data-toggle="modal" id="configC" data-target="#productEditorModal">
+          {{ text_Configure_product }}
+        </button>
+
+        <div class="mt-5 p-3 bg-light rounded shadow-sm">
+          <textarea style="display:none;" name="custom_data" id="iframeDataDisplay" rows="20" class="form-control p-3 bg-white border rounded mt-5"></textarea>
+        </div>
+      {% else %}
+        <div class="alert alert-info">{{ text_no_customization }}</div>
+      {% endif %}
+    </div> <!-- /.text-center -->
+
+    <!-- Modal -->
+    <div class="modal fade" id="productEditorModal" tabindex="-1" role="dialog" aria-labelledby="productEditorModalLabel" aria-hidden="true">
+      <div style="min-width:80%" class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title text-center" id="productEditorModalLabel">Product Editor</h2>
+          </div>
+          <div class="modal-body" style="padding:0;">
+            <iframe id="productEditorIframe" src="{{iframe_url}}?p_id={{product_id}}&base={{base}}&admin=true" allowfullscreen style="width:100%;height:75vh;border:none;"></iframe>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-success" id="saveInModalHeader">{{ btn_save }}</button>
+            <button type="button" class="btn btn-success" id="clearCustomize">{{ text_clear_product_config }}</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ btn_close_editor }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div> <!-- /.tab-pane -->
+{% endif %}
+
+<script type="text/javascript">
+  function resetIframe() {
+    $('#single-product-selected').remove();
+    $("#productEditorIframe").attr('src', '{{iframe_url}}?base={{base}}&admin=true&product_id={{product_id}}');
+  }
+
+  $(document).ready(function() {
+    // Single Product
+    $('input[name=\'product_custom\']').autocomplete({
+      'source': function(request, response) {
+        $.ajax({
+          url: 'index.php?route=catalog/product/autocomplete&user_token={{ user_token }}&filter_name=' + encodeURIComponent(request),
+          dataType: 'json',
+          success: function(json) {
+            response($.map(json, function(item) {
+              return {
+                label: item['name'],
+                value: item['product_id']
+              }
+            }));
+          }
+        });
+      },
+      'select': function(item) {
+        $('input[name=\'product_custom\']').val('');
+        $('#single-product-selected').remove();
+        $('input[name=\'module_customdesigncart_product_id\']').val(item['value']);
+
+        var iframeurl = '{{iframe_url}}?base={{base}}&admin=true&p_id=' + item['value'];
+        $('#productEditorIframe').attr('src', iframeurl);
+
+        $('#input-single-product').after('<div id="single-product-selected"><i class="fa fa-check-circle"></i> ' + item['label'] + '<button type="button" class="btn btn-danger btn-xs" onclick="resetIframe();"><i class="fa fa-times"></i></button></div>');
+      }
+    });
+  });
+</script>
+
+<script>
+  window.designState = null;
+  $(document).ready(function() {
+    const productEditorModal = $('#productEditorModal');
+    const saveInModalHeaderBtn = $('#saveInModalHeader');
+    const clearCustomize = $('#clearCustomize');
+    const iframeDataDisplay = $('#iframeDataDisplay');
+
+    window.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'DESIGN_STATE') {
+        window.designState = event.data.data;
+        iframeDataDisplay.text(JSON.stringify(window.designState, null, 2));
+        console.log('Received from iframe:', designState);
+      }
+    });
+
+    clearCustomize.on('click', function() {
+      var product_id = {{ product_id|json_encode|raw }};
+      $.ajax({
+        url: 'index.php?route=extension/module/customdesigncart/apiClearProductConfig&user_token={{ user_token }}',
+        type: 'POST',
+        data: { product_id: product_id },
+        dataType: 'json',
+        beforeSend: function() {
+          $('#configC').text('Saving...');
+        },
+        success: function(response) {
+          if (response.success) {
+            alert('Custom product configuration saved successfully!');
+          } else {
+            alert('Error: ' + (response.error || 'Unknown error'));
+          }
+        },
+        error: function(xhr) {
+          alert('AJAX error: ' + xhr.status);
+        },
+        complete: function() {
+          $('#configC').text('{{ text_Configure_product }}');
+        }
+      });
+      productEditorModal.modal('hide');
+    });
+
+    saveInModalHeaderBtn.on('click', function() {
+      var product_id = {{ product_id|json_encode|raw }};
+      var custom_data = iframeDataDisplay.val();
+      $.ajax({
+        url: 'index.php?route=extension/module/customdesigncart/apiSaveProductConfig&user_token={{ user_token }}',
+        type: 'POST',
+        data: {
+          product_id: product_id,
+          custom_data: custom_data
+        },
+        dataType: 'json',
+        beforeSend: function() {
+          $('#configC').text('Saving...');
+        },
+        success: function(response) {
+          if (response.success) {
+            alert('Custom product configuration saved successfully!');
+          } else {
+            alert('Error: ' + (response.error || 'Unknown error'));
+          }
+        },
+        error: function(xhr) {
+          alert('AJAX error: ' + xhr.status);
+        },
+        complete: function() {
+          $('#configC').text('{{ text_Configure_product }}');
+        }
+      });
+      productEditorModal.modal('hide');
+    });
+  });
+</script>
+      ]]></add>
+    </operation>
+  </file>
+  
+  <file path="admin/view/template/sale/order_info.twig">
+    <operation>
+      <search><![CDATA[{% endfor %}</td>]]></search>
+      <add position="replace"><![CDATA[
+          {% endfor %}
+          {% if custom_design_cart and product.custom_data %}
+          {% if images_data %}
+          {% for image_data in images_data %}
+          <h3>
+            {{ text_image }}
+            <a href="{{image_data.src}}" download>
+              <img src="{{image_data.src}}" alt="" style="width:42px;height:42px; cursor:pointer;">
+            </a>
+          </h3>
+          <h3> {{ text_image_Width }} {{image_data.width}} {{ text_image_height }} {{image_data.height}}</h3>
+          {% endfor %}
+          {% endif %}
+          <div class="text-center">
+            <button type="button" class="btn btn-primary shadow-sm" data-toggle="modal" data-target="#productEditorModal{{ product.order_product_id}}">
+              <i class="fa fa-eye"></i>
+            </button>
+            <a href="index.php?route=extension/module/customdesigncart/downloadOrderAssets&user_token={{ user_token }}&order_id={{ order_id }}&order_product_id={{ product.order_product_id }}" target="_blank" class="btn btn-info" style="margin-left:10px;">
+              <i class="fa fa-download"></i> 
+            </a>
+        </div>
+
+        <div class="modal fade" id="productEditorModal{{ product.order_product_id}}" tabindex="-1" role="dialog" aria-labelledby="productEditorModalLabel" aria-hidden="true">
+          <div style="min-width:80%" class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+              
+              <div class="modal-body" style="padding:0;">
+                <iframe id="productEditorIframe{{ product.order_product_id}}" src="{{iframe_url}}?op_id={{ product.order_product_id}}&p_id={{product.product_id}}&base={{base}}&strict=true&zoom=100" allowfullscreen style="width:100%;height:75vh;border:none;"></iframe>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        </td>
+      ]]></add>
+    </operation>
+  </file>
+
+  <file path="admin/language/en-gb/sale/order.php">
+    <operation>
+      <search><![CDATA[$_['text_picklist']              = 'Dispatch Note';]]></search>
+      <add position="after"><![CDATA[
+            $_['text_image']                    = '- Image :';
+            $_['text_image_height']             = ' x Height -';
+            $_['text_image_Width']              = ' - Printable Image Size : Width -';
+            $_['text_Preview_product']          = 'Preview Customized Product';
+            $_['text_Close_preview']            = 'Close Preview';
+      ]]></add>
+    </operation>
+  </file>
+
+
+  <file path="catalog/controller/account/order.php">
+    <operation>
+      <search><![CDATA[public function info() {]]></search>
+      <add position="after"><![CDATA[
+        $data['iframe_url'] = $this->config->get('module_customdesigncart_iframe_url');
+		    $data['custom_design_cart'] = $this->config->get('module_customdesigncart_status');
+        if ($this->request->server['HTTPS']) {
+          $data['base'] = HTTPS_SERVER;
+        } else {
+          $data['base'] = HTTP_SERVER;
+        }
+      ]]></add>
+    </operation>
+
+    <operation>
+      <search><![CDATA[$data['products'][] = array(]]></search>
+      <add position="before"><![CDATA[$custom_data = $this->model_account_order->getOrderCustoms($this->request->get['order_id'], $product['order_product_id']);]]></add>
+    </operation>
+
+    <operation>
+      <search><![CDATA[$data['products'][] = array(]]></search>
+      <add position="after"><![CDATA[
+        'order_product_id' => $product['order_product_id'],
+        'product_id' => $product['product_id'],
+        'custom_data' => $custom_data,
+      ]]></add>
+    </operation>
+  </file>
+
+  <file path="catalog/controller/checkout/cart.php">
+    <operation>
+      <search><![CDATA[public function index() {]]></search>
+      <add position="after"><![CDATA[
+        $data['iframe_url'] = $this->config->get('module_customdesigncart_iframe_url');
+		    $data['custom_design_cart'] = $this->config->get('module_customdesigncart_status');
+        if ($this->request->server['HTTPS']) {
+          $data['base'] = HTTPS_SERVER;
+        } else {
+          $data['base'] = HTTP_SERVER;
+        }
+      ]]></add>
+    </operation>
+
+    <operation>
+      <search><![CDATA[$data['products'][] = array(]]></search>
+      <add position="after"><![CDATA[
+        'product_id'   => $product['product_id'],
+        'custom_data'    => $product['custom_data'],
+      ]]></add>
+    </operation>
+
+    <operation>
+      <search><![CDATA[$product_options = $this->model_catalog_product->getProductOptions($this->request->post['product_id']);]]></search>
+      <add position="before"><![CDATA[
+        if (isset($this->request->post['custom_data'])) {
+          $custom_data = html_entity_decode($this->request->post['custom_data']);
+        } else {
+          $custom_data = NULL;
+        }
+      ]]></add>
+    </operation>
+
+    <operation>
+      <search><![CDATA[$this->cart->add($this->request->post['product_id'], $quantity, $option, $recurring_id);]]></search>
+      <add position="replace"><![CDATA[$this->cart->add($this->request->post['product_id'], $quantity, $option, $custom_data, $recurring_id);]]></add>
+    </operation>
+	</file>
+
+  <file path="catalog/controller/checkout/confirm.php">
+    <operation>
+      <search><![CDATA[$order_data['products'][] = array(]]></search>
+      <add position="after"><![CDATA['custom_data'     => $product['custom_data'],]]></add>
+    </operation>
+
+    <operation>
+      <search><![CDATA[$data['products'][] = array(]]></search>
+      <add position="after"><![CDATA['custom_data'     => $product['custom_data'],]]></add>
+    </operation>
+  </file>
+
+  <file path="catalog/controller/common/cart.php">
+		<operation>
+			<search><![CDATA[$data['products'][] = array(]]></search>
+			<add position="after"><![CDATA['custom_data'    => $product['custom_data'],]]></add>
+		</operation>
+	</file>
+
+  <file path="catalog/controller/product/product.php">
+    <operation>
+      <search><![CDATA[$data['options'] = array();]]></search>
+      <add position="before"><![CDATA[
+        $data['iframe_url'] = $this->config->get('module_customdesigncart_iframe_url');
+        $data['custom_design_cart'] = $this->config->get('module_customdesigncart_status');
+
+        if ($this->request->server['HTTPS']) {
+          $data['base'] = HTTPS_SERVER;
+        } else {
+          $data['base'] = HTTP_SERVER;
+        }
+
+        $data['custom_config_data'] = !!$this->model_catalog_product->getProductCustomConfig((int)$this->request->get['product_id']);
+
+      
+      ]]></add>
+    </operation>
+	</file>
+
+  <file path="catalog/model/account/order.php"> 
+    <operation>
+      <search><![CDATA[public function getOrderVouchers($order_id) {]]></search>
+      <add position="before"><![CDATA[
+        public function getOrderCustoms($order_id, $order_product_id) {
+          $query = $this->db->query("SELECT * FROM " . DB_PREFIX . "order_custom WHERE order_id = '" . (int)$order_id . "' AND order_product_id = '" . (int)$order_product_id . "'");
+
+          return $query->rows;
+        }
+      ]]></add>
+    </operation>
+	</file>
+
+  <file path="catalog/model/catalog/product.php">
+    <operation>
+      <search><![CDATA[public function getProduct($product_id) {]]></search>
+      <add position="before"><![CDATA[
+        public function getProductCustomConfig($product_id) {
+          $query = $this->db->query("SELECT custom_data FROM " . DB_PREFIX . "product_custom_config WHERE product_id = " . (int)$product_id );
+
+          return $query->num_rows ? $query->row['custom_data'] : null;
+        }
+      ]]></add>
+    </operation>
+	</file>
+
+  <file path="catalog/model/checkout/order.php">
+    <operation>
+      <search index="0"><![CDATA[$order_product_id = $this->db->getLastId();]]></search>
+      <add position="after"><![CDATA[
+        if (!empty($product['custom_data']) && $product['custom_data'] != NULL) {
+          $this->db->query("INSERT INTO " . DB_PREFIX . "order_custom SET order_id = '" . (int)$order_id . "', order_product_id = '" . (int)$order_product_id . "', custom_data = '" . $this->db->escape($product['custom_data']) . "'");
+        }
+      ]]></add>
+    </operation>
+
+    <operation>
+      <search><![CDATA[$this->db->query("DELETE FROM " . DB_PREFIX . "order_option WHERE order_id = '" . (int)$order_id . "'");]]></search>
+      <add position="before"><![CDATA[$this->db->query("DELETE FROM " . DB_PREFIX . "order_custom WHERE order_id = '" . (int)$order_id . "'");]]></add>
+    </operation>
+
+    <operation>
+      <search index="1"><![CDATA[foreach ($product['option'] as $option) {]]></search>
+      <add position="before"><![CDATA[
+        if (!empty($product['custom_data']) && $product['custom_data'] != NULL) {
+          $this->db->query("INSERT INTO " . DB_PREFIX . "order_custom SET order_id = '" . (int)$order_id . "', order_product_id = '" . (int)$order_product_id . "', custom_data = '" . $this->db->escape($product['custom_data']) . "'");
+        }
+      ]]></add>
+    </operation>
+	</file>
+
+  <file path="catalog/view/theme/default/template/account/order_info.twig">
+    <operation>
+      <search><![CDATA[&nbsp;<small> - {{ option.name }}: {{ option.value }}</small> {% endfor %}</td>]]></search>
+      <add position="replace"><![CDATA[
+          &nbsp;<small> - {{ option.name }}: {{ option.value }}</small> {% endfor %}
+
+          {% if custom_design_cart and product.custom_data %}
+          <div class="text-center">
+            <button type="button" class="btn btn-primary shadow-sm" data-toggle="modal" data-target="#productEditorModal{{ product.order_product_id}}">
+              <i class="fa fa-eye"></i>
+            </button>
+          </div>
+          <div class="modal fade" id="productEditorModal{{ product.order_product_id}}" tabindex="-1" role="dialog" aria-labelledby="productEditorModalLabel" aria-hidden="true">
+            <div style="min-width:80%" class="modal-dialog modal-lg modal-dialog-centered" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                </div>
+                <div class="modal-body" style="padding:0;">
+                  <iframe id="productEditorIframe{{ product.order_product_id}}" src="{{iframe_url}}?op_id={{ product.order_product_id}}&p_id={{product.product_id}}&base={{base}}&preview=true&strict=true&zoom=100" allowfullscreen style="width:100%;height:75vh;border:none;"></iframe>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ text_close_preview }}</button>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>          
+        </td>
+      ]]></add>
+    </operation>
+	</file>
+
+   <file path="catalog/language/en-gb/account/order.php">
+    <operation>
+      <search><![CDATA[$_['text_error']            = 'The order you requested could not be found!';]]></search>
+      <add position="after"><![CDATA[
+           $_['text_customized_product']       = 'Preview Customized Product';
+           $_['text_close_preview']            = 'Close Preview';
+      ]]></add>
+    </operation>
+  </file>
+
+  <file path="catalog/view/theme/default/template/checkout/cart.twig">
+    <operation>
+      <search><![CDATA[{% if product.option %}]]></search>
+      <add position="before"><![CDATA[
+          {% if custom_design_cart and product.custom_data != NULL %}
+            <div class="text-center mt-2">
+              <button 
+                type="button" 
+                class="btn btn-primary shadow-sm open-editor" 
+                data-toggle="modal" 
+                data-target="#productEditorModal"
+                data-cart-id="{{ product.cart_id }}"
+                data-product-id="{{ product.product_id }}"
+              >
+                <i class="fa fa-eye"></i>
+              </button>
+            </div>
+          {% endif %}
+        </div>
+      ]]></add>
+    </operation>
+	</file>
+
+   <file path="catalog/language/en-gb/checkout/cart.php">
+    <operation>
+      <search><![CDATA[$_['text_payment_cancel']      = '%s every %d %s(s) until canceled';]]></search>
+      <add position="after"><![CDATA[
+          $_['text_close_preview']            = 'Close Preview';
+      ]]></add>
+    </operation>
+  </file>
+
+  <file path="catalog/view/theme/default/template/product/product.twig">
+    <operation>
+      <search><![CDATA[<input type="text" name="quantity" value="{{ minimum }}" size="2" id="input-quantity" class="form-control" />]]></search>
+      <add position="after"><![CDATA[
+        <br>{% if custom_design_cart and custom_config_data %}
+          <div class="text-center">
+            <button type="button" class="btn btn-success btn-lg btn-block" data-toggle="modal" data-target="#productEditorModal">
+                {{ text_customize }}
+            </button>
+
+              <textarea style="display:none;" name="custom_data" id="customization" rows="20" class="form-control p-3 bg-white border rounded mt-5"></textarea>
+                
+        </div>
+
+        <div class="modal fade" id="productEditorModal" tabindex="-1" role="dialog" aria-labelledby="productEditorModalLabel" aria-hidden="true">
+          <div style="min-width:80%" class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+              
+              <div class="modal-body" style="padding:0;">
+                <iframe id="productEditorIframe" src="{{iframe_url}}?p_id={{ product_id}}&base={{base}}&font_family={{font_family}}&font_size={{font_size}}&position={{position}}&rotation={{rotation}}&color={{color}}&logo_position={{logo_position}}&logo_rotation={{logo_rotation}}&add_element={{add_element}}&catalog=true" allowfullscreen style="width:100%;height:75vh;border:none;"></iframe>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-success" id="saveInModalHeader">{{ button_cart }}</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ text_close_btn }}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      ]]></add>
+    </operation>
+
+    <operation>
+      <search><![CDATA[{{ footer }}]]></search>
+      <add position="before"><![CDATA[
+        {% if custom_design_cart and custom_config_data %} 
+                {% if custom_design_cart and custom_config_data %} 
+        <script type="text/javascript">
+          window.addEventListener('load', function() {
+            window.designState = null;
+
+            $(document).ready(function() {
+                const productEditorModal = $('#productEditorModal');
+                const saveInModalHeaderBtn = $('#saveInModalHeader');
+
+                window.addEventListener('message', function(event) {
+                if (event.data && event.data.type === 'DESIGN_STATE') {
+                  window.designState = event.data.data;
+                  }
+                });
+
+                saveInModalHeaderBtn.on('click', function() {
+                  
+                  if (window.designState) {
+                    const customization = $('#customization');
+                    customization.text(JSON.stringify(window.designState, null, 2));
+                  }
+                    $('#button-cart').trigger('click');
+                    productEditorModal.modal('hide');
+                });
+            });
+          });
+        </script>
+        {% endif %}
+        {% endif %}
+      ]]></add>
+    </operation>
+
+    <operation>
+      <search><![CDATA[data: $('#product input[type=\'text\'], #product input[type=\'hidden\'], #product input[type=\'radio\']:checked, #product input[type=\'checkbox\']:checked, #product select, #product textarea'),]]></search>
+      <add position="replace"><![CDATA[data: $('#product input[type=\'text\'], #product input[type=\'hidden\'], #product input[type=\'radio\']:checked, #product input[type=\'checkbox\']:checked, #product select, #product textarea, #iframeDataDisplay'),]]></add>
+    </operation>
+	</file>
+
+    <file path="catalog/language/en-gb/product/product.php">
+    <operation>
+      <search><![CDATA[$_['text_year']                = 'year';]]></search>
+      <add position="after"><![CDATA[
+          $_['text_customize']               = 'Customize Product';
+
+          $_['text_product_editor']      = 'Product Editor';
+          // button
+          $_['text_save_btn']      = 'Save';
+          $_['text_close_btn']      = 'Close Editor';
+      ]]></add>
+    </operation>
+  </file>
+
+</modification>
