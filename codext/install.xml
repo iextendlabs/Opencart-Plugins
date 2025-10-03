@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+  <code>CPD-IECOD</code>
+	<name>COD for everyone</name>
+	<version>1.0</version>
+	<author>iExtend Labs || support@iextendlabs.com</author>
+	<link>http://iextendlabs.com</link>
+
+  <file path="catalog/model/extension/payment/cod.php">
+    <operation>
+      <search><![CDATA[if ($status) {]]></search>
+      <add position="before"><![CDATA[ $status=true; ]]></add>
+    </operation>
+  </file>
+  </modification>

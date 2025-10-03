@@ -1,0 +1,189 @@
+{{ header }}{{ column_left }}
+<div id="content">
+  <div class="page-header">
+    <div class="container-fluid">
+      <div class="pull-right">
+        <button type="submit" form="form-module" data-toggle="tooltip" title="{{ button_save }}" class="btn btn-primary"><i class="fa fa-save"></i></button>
+        <a href="{{ cancel }}" data-toggle="tooltip" title="{{ button_cancel }}" class="btn btn-default"><i class="fa fa-reply"></i></a></div>
+      <h1>{{ heading_title }}</h1>
+      <ul class="breadcrumb">
+        {% for breadcrumb in breadcrumbs %}
+        <li><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="container-fluid">
+    {% if error_warning %}
+    <div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> {{ error_warning }}
+      <button type="button" class="close" data-dismiss="alert">&times;</button>
+    </div>
+    {% endif %}
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title"><i class="fa fa-pencil"></i> {{ text_edit }}</h3>
+      </div>
+      <div class="panel-body">
+        <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-module" class="form-horizontal">
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="input-status">{{ entry_status }}</label>
+            <div class="col-sm-10">
+              <select name="module_customdesigncart_status" id="input-status" class="form-control">
+                {% if module_customdesigncart_status %}
+                <option value="1" selected="selected">{{ text_enabled }}</option>
+                <option value="0">{{ text_disabled }}</option>
+                {% else %}
+                <option value="1">{{ text_enabled }}</option>
+                <option value="0" selected="selected">{{ text_disabled }}</option>
+                {% endif %}
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="input-iframe-url">{{ entry_iframe_url }}</label>
+            <div class="col-sm-10">
+              <input type="text" name="module_customdesigncart_iframe_url" placeholder="{{ entry_iframe_url }}" id="input-iframe-url" value="{{ module_customdesigncart_iframe_url }}" class="form-control" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="input-single-product">{{ entry_source_product }}</label>
+            <div class="col-sm-10">
+              <input type="text" name="product" value="" placeholder="{{ entry_source_product }}" id="input-single-product" class="form-control" />
+              <input type="hidden" name="module_customdesigncart_product_id" value="{{ module_customdesigncart_product_id }}" />
+              {% if module_customdesigncart_product %}
+              <div id="single-product-selected"><i class="fa fa-check-circle"></i> {{ module_customdesigncart_product }}
+                <button type="button" class="btn btn-danger btn-xs" onclick="$('#single-product-selected').remove(); $('input[name=\'module_customdesigncart_product_id\']').val('');"><i class="fa fa-times"></i></button>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="input-related">{{ entry_target_products }}</label>
+            <div class="col-sm-10">
+              <input type="text" name="related" value="" placeholder="{{ entry_target_products }}" id="input-related" class="form-control" />
+              <div id="module-related" class="well well-sm" style="height: 150px; overflow: auto;">
+                {% for related_product in module_related_products %}
+                <div id="module-related{{ related_product.product_id }}"><i class="fa fa-minus-circle"></i> {{ related_product.name }}
+                  <input type="hidden" name="module_customdesigncart_related[]" value="{{ related_product.product_id }}" />
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="col-sm-10 col-sm-offset-2">
+              <button type="button" id="button-copy-data" class="btn btn-primary"><i class="fa fa-copy"></i> Copy Product Data</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+<script type="text/javascript">
+$(document).ready(function() {
+
+// Single Product
+$('input[name=\'product\']').autocomplete({
+	'source': function(request, response) {
+		$.ajax({
+			url: '{{ product_autocomplete }}&user_token={{ user_token }}&filter_name=' +  encodeURIComponent(request),
+			dataType: 'json',
+			success: function(json) {
+				response($.map(json, function(item) {
+					return {
+						label: item['name'],
+						value: item['product_id']
+					}
+				}));
+			}
+		});
+	},
+	'select': function(item) {
+		$('input[name=\'product\']').val('');
+		$('#single-product-selected').remove();
+		$('input[name=\'module_customdesigncart_product_id\']').val(item['value']);
+		
+		$('#input-single-product').after('<div id="single-product-selected"><i class="fa fa-check-circle"></i> ' + item['label'] + '<button type="button" class="btn btn-danger btn-xs" onclick="$(\'#single-product-selected\').remove(); $(\'input[name=\\\'module_customdesigncart_product_id\\\']\').val(\'\');"><i class="fa fa-times"></i></button></div>');
+	}
+});
+
+// Related
+$('input[name=\'related\']').autocomplete({
+	'source': function(request, response) {
+		$.ajax({
+			url: '{{ product_autocomplete }}&user_token={{ user_token }}&filter_name=' +  encodeURIComponent(request),
+			dataType: 'json',
+			success: function(json) {
+				response($.map(json, function(item) {
+					return {
+						label: item['name'],
+						value: item['product_id']
+					}
+				}));
+			}
+		});
+	},
+	'select': function(item) {
+		$('input[name=\'related\']').val('');
+		
+		$('#module-related' + item['value']).remove();
+		
+		$('#module-related').append('<div id="module-related' + item['value'] + '"><i class="fa fa-minus-circle"></i> ' + item['label'] + '<input type="hidden" name="module_customdesigncart_related[]" value="' + item['value'] + '" /></div>');	
+	}	
+});
+
+$('#module-related').delegate('.fa-minus-circle', 'click', function() {
+	$(this).parent().remove();
+});
+
+$('#button-copy-data').on('click', function() {
+    var sourceProductId = $('input[name=\'module_customdesigncart_product_id\']').val();
+    var targetProductIds = [];
+    
+    // Get all related product IDs
+    $('input[name^=\'module_customdesigncart_related\']').each(function() {
+        targetProductIds.push($(this).val());
+    });
+    
+    if (!sourceProductId) {
+        alert('Please select a source product first!');
+        return;
+    }
+    
+    if (targetProductIds.length === 0) {
+        alert('Please select at least one target product!');
+        return;
+    }
+    
+    $.ajax({
+        url: 'index.php?route=extension/module/customdesigncart/copyData&user_token={{ user_token }}',
+        type: 'POST',
+        data: {
+            source_product_id: sourceProductId,
+            target_product_ids: targetProductIds
+        },
+        dataType: 'json',
+        beforeSend: function() {
+            $('#button-copy-data').button('loading');
+        },
+        complete: function() {
+            $('#button-copy-data').button('reset');
+        },
+        success: function(json) {
+            if (json['success']) {
+                alert(json['success']);
+            }
+            if (json['error']) {
+                alert(json['error']);
+            }
+        },
+        error: function(xhr, ajaxOptions, thrownError) {
+            alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+        }
+    });
+});
+});
+</script>
+  </div>
+</div>
+{{ footer }}
