@@ -14,6 +14,8 @@ class ControllerExtensionFraudBuyercheck extends Controller {
     ];
 
     public function index() {
+        $this->log(['message' => 'BuyerCheck settings page accessed.'], 'index');
+
         $this->load->language('extension/fraud/buyercheck');
 
         $this->document->setTitle($this->language->get('heading_title'));
@@ -175,6 +177,8 @@ class ControllerExtensionFraudBuyercheck extends Controller {
     }
 
     public function install() {
+        $this->log(['message' => 'BuyerCheck module installation started.'], 'install');
+
         $this->load->model('setting/event');
         $this->load->model('extension/fraud/buyercheck');
         $this->model_extension_fraud_buyercheck->install();
@@ -184,9 +188,13 @@ class ControllerExtensionFraudBuyercheck extends Controller {
 		}
         // enable the event
         $this->model_setting_event->enableEvent('buyercheck_prepare_and_check_risk');
+
+        $this->log(['message' => 'BuyerCheck module installation finished.'], 'install');
     }
 
     public function uninstall() {
+        $this->log(['message' => 'BuyerCheck module uninstallation started.'], 'uninstall');
+
         $this->load->model('setting/event');
         $this->load->model('extension/fraud/buyercheck');
         $this->model_extension_fraud_buyercheck->uninstall();
@@ -194,9 +202,13 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         foreach($this->_events as $event) {
 			$this->model_setting_event->deleteEventByCode($event['code']);
 		}
+
+        $this->log(['message' => 'BuyerCheck module uninstallation finished.'], 'uninstall');
     }
 
     protected function validate() {
+        $this->log(['message' => 'Validating BuyerCheck settings.'], 'validate');
+
         if (!$this->user->hasPermission('modify', 'extension/fraud/buyercheck')) {
             $this->error['warning'] = $this->language->get('error_permission');
         }
@@ -259,6 +271,12 @@ class ControllerExtensionFraudBuyercheck extends Controller {
                 $error_message = isset($result['error']) ? $result['error'] : 'Unknown API error';
                 $this->error['warning'] = $this->language->get('error_api_validation') . ' ' . $error_message;
             }
+        }
+
+        if ($this->error) {
+            $this->log(['message' => 'Validation failed.', 'errors' => $this->error], 'validate');
+        } else {
+            $this->log(['message' => 'Validation successful.'], 'validate');
         }
 
         return !$this->error;
@@ -413,15 +431,17 @@ class ControllerExtensionFraudBuyercheck extends Controller {
     }
 
     public function order() {
-        $this->load->language('extension/fraud/buyercheck');
-
-        $this->load->model('extension/fraud/buyercheck');
-
         if (isset($this->request->get['order_id'])) {
             $order_id = $this->request->get['order_id'];
         } else {
             $order_id = 0;
         }
+
+        $this->log(['message' => 'Fetching fraud info for order_id: ' . $order_id], 'order');
+
+        $this->load->language('extension/fraud/buyercheck');
+
+        $this->load->model('extension/fraud/buyercheck');
 
         $fraud_info = $this->model_extension_fraud_buyercheck->getOrder($order_id);
 
@@ -442,6 +462,8 @@ class ControllerExtensionFraudBuyercheck extends Controller {
     }
 
     public function logs() {
+        $this->log(['message' => 'Logs page accessed.'], 'logs');
+
         $this->load->language('extension/fraud/buyercheck');
         $this->document->setTitle($this->language->get('heading_title'));
         $data['heading_title'] = $this->language->get('heading_title');
@@ -477,6 +499,8 @@ class ControllerExtensionFraudBuyercheck extends Controller {
     }
 
     public function clear_log() {
+        $this->log(['message' => 'Log clear requested.'], 'clear_log');
+
         $this->load->language('extension/fraud/buyercheck');
         if ($this->user->hasPermission('modify', 'extension/fraud/buyercheck')) {
             $file = DIR_LOGS . 'buyercheck.log';
@@ -488,6 +512,8 @@ class ControllerExtensionFraudBuyercheck extends Controller {
     }
 
     public function order_list() {
+        $this->log(['message' => 'Order list page accessed.'], 'order_list');
+
         $this->load->language('extension/fraud/buyercheck');
         $this->document->setTitle($this->language->get('heading_title'));
         $this->load->model('extension/fraud/buyercheck');
