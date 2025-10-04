@@ -33,6 +33,20 @@
           <div class="tab-pane active" id="tab-settings">
             <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-fraud" class="form-horizontal">
               <div class="form-group">
+                <label class="col-sm-2 control-label" for="input-logging"><span data-toggle="tooltip" title="{{ help_logging }}">{{ entry_logging }}</span></label>
+                <div class="col-sm-10">
+                  <select name="fraud_buyercheck_logging" id="input-logging" class="form-control">
+                    {% if fraud_buyercheck_logging %}
+                    <option value="1" selected="selected">{{ text_yes }}</option>
+                    <option value="0">{{ text_no }}</option>
+                    {% else %}
+                    <option value="1">{{ text_yes }}</option>
+                    <option value="0" selected="selected">{{ text_no }}</option>
+                    {% endif %}
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
                 <label class="col-sm-2 control-label" for="input-status">{{ entry_status }}</label>
                 <div class="col-sm-10">
                   <select name="fraud_buyercheck_status" id="input-status" class="form-control">

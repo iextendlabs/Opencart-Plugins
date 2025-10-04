@@ -43,6 +43,13 @@ class ModelExtensionFraudBuyercheck extends Model {
         return $query->rows;
     }
 
+    private function log($data = array(), $title = '') {
+        if ($this->config->get('fraud_buyercheck_logging')) {
+            $log = new Log('buyercheck.log');
+            $log->write('BuyerCheck debug (' . $title . '): ' . json_encode($data));
+        }
+    }
+
     public function validateAPI($email, $api_key, $store_category, $raw_data_consent) {
         $data = array(
             'api_user' => $email,
@@ -51,8 +58,11 @@ class ModelExtensionFraudBuyercheck extends Model {
             'raw_data_consent' => (bool)$raw_data_consent
         );
 
+        $url = 'https://api.buyercheck.bg/onboard-store';
+        $this->log(['Request URL' => $url, 'Request Type' => 'POST', 'Request Body' => $data], 'validateAPI Request');
+
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://api.buyercheck.bg/onboard-store');
+        curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
@@ -66,6 +76,8 @@ class ModelExtensionFraudBuyercheck extends Model {
         $response = curl_exec($ch);
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+
+        $this->log(['Response Code' => $http_code, 'Raw Response' => $response], 'validateAPI Response');
 
         $result = ['status' => $http_code, 'result' => json_decode($response, true)];
         return $result;

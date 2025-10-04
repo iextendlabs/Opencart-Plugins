@@ -120,6 +120,12 @@ class ControllerExtensionFraudBuyercheck extends Controller {
             $data['fraud_buyercheck_webhook_url'] = $this->config->get('fraud_buyercheck_webhook_url') ? $this->config->get('fraud_buyercheck_webhook_url') : HTTPS_CATALOG . 'index.php?route=extension/fraud/buyercheck/webhook';
         }
 
+        if (isset($this->request->post['fraud_buyercheck_logging'])) {
+            $data['fraud_buyercheck_logging'] = $this->request->post['fraud_buyercheck_logging'];
+        } else {
+            $data['fraud_buyercheck_logging'] = $this->config->get('fraud_buyercheck_logging');
+        }
+
         $data['store_categories'] = $this->getStoreCategories();
 
         $data['logs'] = $this->url->link('extension/fraud/buyercheck/logs', 'user_token=' . $this->session->data['user_token'], true);
@@ -135,8 +141,11 @@ class ControllerExtensionFraudBuyercheck extends Controller {
     private function getStoreCategories() {
         $categories = array();
 
+        $url = 'https://api.buyercheck.bg/onboard-store';
+        $this->log(['Request URL' => $url, 'Request Type' => 'GET'], 'getStoreCategories Request');
+
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://api.buyercheck.bg/onboard-store');
+        curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -144,6 +153,8 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         $response = curl_exec($ch);
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+
+        $this->log(['Response Code' => $http_code, 'Raw Response' => $response], 'getStoreCategories Response');
 
         if ($http_code == 200 && $response) {
             $data = json_decode($response, true);
@@ -217,8 +228,11 @@ class ControllerExtensionFraudBuyercheck extends Controller {
                 'raw_data_consent' => (bool) ($this->request->post['fraud_buyercheck_raw_data_consent'] ?? 0)
             );
 
+            $url = 'https://api.buyercheck.bg/onboard-store';
+            $this->log(['Request URL' => $url, 'Request Type' => 'POST', 'Request Body' => $data], 'validate Request');
+
             $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, 'https://api.buyercheck.bg/onboard-store');
+            curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
@@ -232,6 +246,8 @@ class ControllerExtensionFraudBuyercheck extends Controller {
             $response = curl_exec($ch);
             $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
+
+            $this->log(['Response Code' => $http_code, 'Raw Response' => $response], 'validate Response');
 
             if ($http_code == 200 && $response) {
                 $result = json_decode($response, true);
@@ -250,7 +266,7 @@ class ControllerExtensionFraudBuyercheck extends Controller {
     }
 
     public function log($data = array(), $title = '') {
-        if (true) {
+        if ($this->config->get('fraud_buyercheck_logging')) {
             $log = new Log('buyercheck.log');
             $log->write('BuyerCheck debug (' . $title . '): ' . json_encode($data));
         }
@@ -344,8 +360,11 @@ class ControllerExtensionFraudBuyercheck extends Controller {
             }
         }
         
+        $url = 'https://api.buyercheck.bg/submit-order-data';
+        $this->log(['Request URL' => $url, 'Request Type' => 'POST', 'Request Body' => $data], 'submitOrderToAPI Request');
+
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://api.buyercheck.bg/submit-order-data');
+        curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
@@ -361,12 +380,12 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         curl_close($ch);
         
         if ($http_code == 200 && $response) {
-            $this->log(['API success', $response], 'submitOrderToAPI');
+            $this->log(['Response Code' => $http_code, 'Raw Response' => $response], 'submitOrderToAPI Response');
             $result = json_decode($response, true);
             return $result;
         }
         
-        $this->log(['API error', $http_code, $response], 'submitOrderToAPI');
+        $this->log(['Response Code' => $http_code, 'Raw Response' => $response], 'submitOrderToAPI Response');
         return false;
     }
 

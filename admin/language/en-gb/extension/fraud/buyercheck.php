@@ -40,6 +40,10 @@ $_['entry_raw_data_consent'] = 'Raw Data Consent';
 $_['entry_risky_action'] = 'Risky Action';
 $_['entry_webhook_secret'] = 'Webhook Secret';
 $_['entry_webhook_url']    = 'Webhook URL';
+$_['entry_logging'] = 'Debug Logging';
+
+// Help
+$_['help_logging'] = 'Enable this to start logging debug information in the BuyerCheck log file.';
 
 // Error
 $_['error_permission'] = 'Warning: You do not have permission to modify Buyer Check module!';
