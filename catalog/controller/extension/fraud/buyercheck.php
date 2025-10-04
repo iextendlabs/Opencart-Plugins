@@ -141,6 +141,20 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         }
     }
 
+    private function getOrderHistories($order_id, $start = 0, $limit = 10) {
+		if ($start < 0) {
+			$start = 0;
+		}
+
+		if ($limit < 1) {
+			$limit = 10;
+		}
+
+		$query = $this->db->query("SELECT oh.date_added, os.name AS status, oh.comment, oh.notify FROM " . DB_PREFIX . "order_history oh LEFT JOIN " . DB_PREFIX . "order_status os ON oh.order_status_id = os.order_status_id WHERE oh.order_id = '" . (int)$order_id . "' AND os.language_id = '" . (int)$this->config->get('config_language_id') . "' ORDER BY oh.date_added DESC LIMIT " . (int)$start . "," . (int)$limit);
+
+		return $query->rows;
+	}
+
     public function prepareAndCheckRisk(&$route, &$args, &$output) {
         $this->log(['message' => 'prepareAndCheckRisk event triggered'], 'prepareAndCheckRisk');
 
@@ -169,11 +183,11 @@ class ControllerExtensionFraudBuyercheck extends Controller {
             return;
         }
 
-        $order_histories = $this->model_checkout_order->getOrderHistories($order_id);
-        if (count($order_histories) > 1) {
-            $this->log(['message' => 'Order already has history, skipping', 'order_id' => $order_id], 'prepareAndCheckRisk');
-            return;
-        }
+        // $order_histories = $this->model_checkout_order->getOrderHistories($order_id);
+        // if (count($order_histories) > 1) {
+        //     $this->log(['message' => 'Order already has history, skipping', 'order_id' => $order_id], 'prepareAndCheckRisk');
+        //     return;
+        // }
         
         $payment_method = strtolower($order_info['payment_method']);
         if (strpos($payment_method, 'cash') === false && 
