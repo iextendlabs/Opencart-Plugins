@@ -110,7 +110,8 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
             'X-Buyercheck-Key: ' . $api_key,
-            'Content-Type: application/json'
+            'Content-Type: application/json',
+            'User-Agent: OpenCart/' . VERSION . ' BuyerCheck/1.0'
         ));
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -170,28 +171,17 @@ class ControllerExtensionFraudBuyercheck extends Controller {
             return;
         }
 
-        // $order_histories = $this->model_checkout_order->getOrderHistories($order_id);
-        // if (count($order_histories) > 1) {
-        //     $this->log(['message' => 'Order already has history, skipping', 'order_id' => $order_id], 'prepareAndCheckRisk');
-        //     return;
-        // }
-        
-        $payment_method = strtolower($order_info['payment_method']);
-        if (strpos($payment_method, 'cash') === false && 
-            strpos($payment_method, 'cod') === false && 
-            strpos($payment_method, 'delivery') === false) {
-            $this->log(['message' => 'payment_method is not cash, cod or delivery'], 'prepareAndCheckRisk');
-            return;
-        }
+        $this->load->model('extension/fraud/buyercheck');
+        $this->model_extension_fraud_buyercheck->addOrder($order_id);
         
         $order_data = array(
-            'order_id' => $order_id,
-            'email' => $order_info['email'],
-            'telephone' => $order_info['telephone'],
-            'total' => $order_info['total'],
+            'order_id'      => $order_id,
+            'email'         => $order_info['email'],
+            'telephone'     => $order_info['telephone'],
+            'total'         => $order_info['total'],
             'currency_code' => $order_info['currency_code'],
-            'ip' => $order_info['ip'],
-            'date_added' => $order_info['date_added']
+            'ip'            => $order_info['ip'],
+            'date_added'    => $order_info['date_added']
         );
         
         $this->submitOrderToAPI($order_data, $order_info['order_status_id']);
@@ -205,7 +195,7 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         
         $data = array(
             'api_user' => $api_email,
-            'store_id' => rtrim(HTTPS_SERVER, '/'),
+            'store_id' => $this->getStoreUrl(),
             'orders' => [
                 [
                     'order_id' => $order_data['order_id'],
@@ -240,15 +230,9 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
             'X-Buyercheck-Key: ' . $api_key,
-            'Content-Type: application/json'
+            'Content-Type: application/json',
+            'User-Agent: OpenCart/' . VERSION . ' BuyerCheck/1.0'
         ));
-
-         // log request headers
-        $this->log(['Request Headers' => array(
-            'X-Buyercheck-Key: ' . $api_key,
-            'Content-Type: application/json'
-        )], 'submitOrderToAPI Request Headers');
-        
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         
@@ -286,6 +270,119 @@ class ControllerExtensionFraudBuyercheck extends Controller {
             return 'canceled';
         }
         
-        return 'other';
+        return 'pending';
     }
+
+    public function process_orders() {
+        $this->log(['message' => 'process_orders cron job started.'], 'process_orders');
+
+        $api_key = $this->config->get('fraud_buyercheck_api_key');
+        $email = $this->config->get('fraud_buyercheck_email');
+        $subscription_status = $this->config->get('fraud_buyercheck_subscription_status');
+
+        if (empty($api_key) || empty($email) || $subscription_status !== 'active') {
+            $this->log(['message' => 'Subscription not active or settings not configured. Exiting.'], 'process_orders');
+            return;
+        }
+
+        $this->load->model('extension/fraud/buyercheck');
+
+        $batch_size = 25;
+        $page = 1;
+
+        do {
+            $filter_data = [
+                'start' => ($page - 1) * $batch_size,
+                'limit' => $batch_size
+            ];
+            
+            $orders = $this->model_extension_fraud_buyercheck->getProcessableOrders($filter_data);
+            
+            $orders_to_submit = [];
+
+            if ($orders) {
+                $this->load->model('checkout/order');
+                $raw_data_consent = $this->config->get('fraud_buyercheck_raw_data_consent');
+
+                foreach ($orders as $order_summary) {
+                    $order_info = $this->model_checkout_order->getOrder($order_summary['order_id']);
+
+                    if (!$order_info) continue;
+
+                    $order_status = $this->mapOrderStatus($order_info['order_status_id']);
+
+                    $order_payload = [
+                        'order_id' => $order_info['order_id'],
+                        'ip_hash' => hash('sha256', $order_info['ip']),
+                        'amount' => floatval($order_info['total']),
+                        'pending_amount' => $order_status == 'pending' ? floatval($order_info['total']) : 0,
+                        'order_status' => $order_status,
+                        'created_at' => $order_info['date_added']
+                    ];
+
+                    if ($raw_data_consent) {
+                        $order_payload['email'] = $order_info['email'];
+                        if (!empty($order_info['telephone'])) {
+                            $order_payload['phone'] = $order_info['telephone'];
+                        }
+                    } else {
+                        $order_payload['email'] = hash('sha256', $order_info['email']);
+                        if (!empty($order_info['telephone'])) {
+                            $order_payload['phone'] = hash('sha256', $order_info['telephone']);
+                        }
+                    }
+                    
+                    $orders_to_submit[] = $order_payload;
+
+                    $this->model_extension_fraud_buyercheck->setOrderStatus($order_info['order_id'], 'processing');
+                }
+            }
+
+            if (!empty($orders_to_submit)) {
+                $this->submitBatchToAPI($orders_to_submit);
+            }
+
+            $page++;
+        } while (!empty($orders) && count($orders) === $batch_size);
+
+        $this->log(['message' => 'process_orders cron job finished.'], 'process_orders');
+    }
+
+    public function submitBatchToAPI($orders) {
+        $api_email = $this->config->get('fraud_buyercheck_email');
+        $api_key = $this->config->get('fraud_buyercheck_api_key');
+
+        $data = array(
+            'api_user' => $api_email,
+            'store_id' => $this->getStoreUrl(),
+            'orders' => $orders
+        );
+
+        $url = 'https://api.buyercheck.bg/submit-order-data';
+        $this->log(['Request URL' => $url, 'Request Type' => 'POST', 'Request Body' => $data], 'submitBatchToAPI Request');
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'X-Buyercheck-Key: ' . $api_key,
+            'Content-Type: application/json',
+            'User-Agent: OpenCart/' . VERSION . ' BuyerCheck/1.0'
+        ));
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $this->log(['Response Code' => $http_code, 'Raw Response' => $response], 'submitBatchToAPI Response');
+        
+        return $http_code == 200;
+    }
+}
+
+}
 }

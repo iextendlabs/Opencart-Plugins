@@ -151,6 +151,7 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('User-Agent: OpenCart/' . VERSION . ' BuyerCheck/1.0'));
 
         $response = curl_exec($ch);
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -250,7 +251,8 @@ class ControllerExtensionFraudBuyercheck extends Controller {
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
             curl_setopt($ch, CURLOPT_HTTPHEADER, array(
                 'X-Buyercheck-Key: ' . $this->request->post['fraud_buyercheck_api_key'],
-                'Content-Type: application/json'
+                'Content-Type: application/json',
+                'User-Agent: OpenCart/' . VERSION . ' BuyerCheck/1.0'
             ));
             curl_setopt($ch, CURLOPT_TIMEOUT, 30);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);

@@ -1,12 +1,52 @@
 <?php
 class ModelExtensionFraudBuyercheck extends Model {
-    public function updateOrderData($order_data) {
-        $order_id = (int)$order_data['order_id'];
-        $risk_score = isset($order_data['risk_score']) ? (int)$order_data['risk_score'] : 0;
-        $recommended_action = isset($order_data['recommended_action']) ? $this->db->escape($order_data['recommended_action']) : '';
-        $risk_details = isset($order_data['risk_details_external']) ? $this->db->escape($order_data['risk_details_external']) : '';
-        $calculated_at = isset($order_data['calculated_at']) ? $this->db->escape($order_data['calculated_at']) : '';
 
-        $this->db->query("INSERT INTO `" . DB_PREFIX . "buyercheck_order` SET order_id = '" . $order_id . "', risk_score = '" . $risk_score . "', recommended_action = '" . $recommended_action . "', risk_details = '" . $risk_details . "', calculated_at = '" . $calculated_at . "' ON DUPLICATE KEY UPDATE risk_score = '" . $risk_score . "', recommended_action = '" . $recommended_action . "', risk_details = '" . $risk_details . "', calculated_at = '" . $calculated_at . "'");
+    public function getProcessableOrders($data = array()) {
+        $sql = "SELECT o.order_id FROM `" . DB_PREFIX . "order` o 
+                LEFT JOIN `" . DB_PREFIX . "buyercheck_orders` bo ON (o.order_id = bo.order_id) 
+                WHERE bo.order_id IS NULL OR bo.buyercheck_status = 'pending'";
+
+        $sql .= " ORDER BY o.order_id DESC";
+
+        if (isset($data['start']) || isset($data['limit'])) {
+            if ($data['start'] < 0) $data['start'] = 0;
+            if ($data['limit'] < 1) $data['limit'] = 20;
+            $sql .= " LIMIT " . (int)$data['start'] . "," . (int)$data['limit'];
+        }
+
+        $query = $this->db->query($sql);
+        return $query->rows;
+    }
+
+    public function setOrderStatus($order_id, $status) {
+        $this->db->query("INSERT INTO `" . DB_PREFIX . "buyercheck_orders` SET order_id = '" . (int)$order_id . "', buyercheck_status = '" . $this->db->escape($status) . "', created_at = NOW(), updated_at = NOW() ON DUPLICATE KEY UPDATE buyercheck_status = '" . $this->db->escape($status) . "', updated_at = NOW()");
+    }
+
+    public function updateOrderData($order_received) {
+        if (!empty($order_received['order_id'])) {
+            $sql = "UPDATE `" . DB_PREFIX . "buyercheck_orders` SET ";
+            $fields = [];
+            if (isset($order_received['risk_score'])) {
+                $fields[] = "risk_score = '" . (int)$order_received['risk_score'] . "'";
+            }
+            if (isset($order_received['recommended_action'])) {
+                $fields[] = "recommended_action = '" . $this->db->escape($order_received['recommended_action']) . "'";
+            }
+            if (isset($order_received['risk_details'])) {
+                $fields[] = "risk_details = '" . $this->db->escape(json_encode($order_received['risk_details'])) . "'";
+            }
+            
+            $fields[] = "buyercheck_status = 'finalized'";
+            $fields[] = "calculated_at = NOW()";
+
+            $sql .= implode(", ", $fields);
+            $sql .= " WHERE order_id = '" . (int)$order_received['order_id'] . "'";
+
+            $this->db->query($sql);
+        }
+    }
+    
+    public function addOrder($order_id) {
+        $this->db->query("INSERT INTO `" . DB_PREFIX . "buyercheck_orders` SET order_id = '" . (int)$order_id . "', buyercheck_status = 'pending', created_at = NOW(), updated_at = NOW() ON DUPLICATE KEY UPDATE updated_at = NOW()");
     }
 }
