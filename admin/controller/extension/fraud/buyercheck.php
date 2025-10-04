@@ -144,15 +144,16 @@ class ControllerExtensionFraudBuyercheck extends Controller {
 
         if ($http_code == 200 && $response) {
             $data = json_decode($response, true);
+
             if (isset($data['categories']) && is_array($data['categories'])) {
                 $categories = $data['categories'];
             }
         }
         // create an associative array with 'value' and 'text' keys
         $formatted_categories = array();
-        foreach ($categories as $category) {
+        foreach ($categories as $value=>$category) {
             $formatted_categories[] = array(
-                'value' => $category,
+                'value' =>  $value,
                 'text' => $category
             );
         }
