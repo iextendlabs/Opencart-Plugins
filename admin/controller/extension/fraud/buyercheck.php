@@ -286,7 +286,7 @@ class ControllerExtensionFraudBuyercheck extends Controller {
     public function log($data = array(), $title = '') {
         if ($this->config->get('fraud_buyercheck_logging')) {
             $log = new Log('buyercheck.log');
-            $log->write('BuyerCheck debug (' . $title . '): ' . json_encode($data));
+            $log->write('Admin (' . $title . '): \n' . json_encode($data, JSON_PRETTY_PRINT));
         }
     }
 
