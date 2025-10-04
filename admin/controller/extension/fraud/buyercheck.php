@@ -117,7 +117,7 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         if (isset($this->request->post['fraud_buyercheck_webhook_url'])) {
             $data['fraud_buyercheck_webhook_url'] = $this->request->post['fraud_buyercheck_webhook_url'];
         } else {
-            $data['fraud_buyercheck_webhook_url'] = $this->config->get('fraud_buyercheck_webhook_url');
+            $data['fraud_buyercheck_webhook_url'] = $this->config->get('fraud_buyercheck_webhook_url') ? $this->config->get('fraud_buyercheck_webhook_url') : HTTPS_CATALOG . 'index.php?route=extension/fraud/buyercheck/webhook';
         }
 
         $data['store_categories'] = $this->getStoreCategories();
@@ -145,13 +145,18 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         if ($http_code == 200 && $response) {
             $data = json_decode($response, true);
             if (isset($data['categories']) && is_array($data['categories'])) {
-                $categories = array_filter($data['categories'], function($category) {
-                    return !empty($category['name']);
-                });
+                $categories = $data['categories'];
             }
         }
-
-        return $categories;
+        // create an associative array with 'value' and 'text' keys
+        $formatted_categories = array();
+        foreach ($categories as $category) {
+            $formatted_categories[] = array(
+                'value' => $category,
+                'text' => $category
+            );
+        }
+        return $formatted_categories;
     }
 
     public function install() {
@@ -194,25 +199,50 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         }
 
         if (!$this->error) {
-            $this->load->model('extension/fraud/buyercheck');
+            $webhook_secret = $this->request->post['fraud_buyercheck_webhook_secret'] ? $this->request->post['fraud_buyercheck_webhook_secret'] : bin2hex(random_bytes(16));
+            // path=    $webhook_url_path = 'buyercheck_webhook_' . md5(openssl_random_pseudo_bytes(16));
+            
+            $webhook_full_url = $this->request->post['fraud_buyercheck_webhook_url'] ?  $this->request->post['fraud_buyercheck_webhook_url'] : HTTPS_CATALOG . 'index.php?route=extension/fraud/buyercheck/webhook' ;
 
-            $api_result = $this->model_extension_fraud_buyercheck->validateAPI(
-                $this->request->post['fraud_buyercheck_email'],
-                $this->request->post['fraud_buyercheck_api_key'],
-                $this->request->post['fraud_buyercheck_store_category'],
-                $this->request->post['fraud_buyercheck_raw_data_consent'] ?? 0
+            $data = array(
+                'api_user' => $this->request->post['fraud_buyercheck_email'],
+                'domain' => preg_replace("(^https?://)", "", HTTPS_SERVER),
+                'category' => $this->request->post['fraud_buyercheck_store_category'],
+                'webhook_secret' => $webhook_secret,
+                'webhook_url' => $webhook_full_url,
+                'raw_data_consent' => (bool) ($this->request->post['fraud_buyercheck_raw_data_consent'] ?? 0)
             );
 
-            if ($api_result['status'] != 200) {
-                $this->error['warning'] = $this->language->get('error_api_validation') . ' ' . $api_result['result']['error'];
-            } else {
-                if (isset($api_result['result']['subscription_status'])) {
-                    $this->request->post['fraud_buyercheck_subscription_status'] = $api_result['result']['subscription_status'];
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, 'https://api.buyercheck.bg/onboard-store');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                'X-Buyercheck-Key: ' . $this->request->post['fraud_buyercheck_api_key'],
+                'Content-Type: application/json'
+            ));
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            
+            $response = curl_exec($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($http_code == 200 && $response) {
+                $result = json_decode($response, true);
+                if (isset($result['subscription_status'])) {
+                    $this->request->post['fraud_buyercheck_subscription_status'] = $result['subscription_status'];
                 }
+            } else {
+                $result = json_decode($response, true);
+                $error_message = isset($result['error']) ? $result['error'] : 'Unknown API error';
+                $this->error['warning'] = $this->language->get('error_api_validation') . ' ' . $error_message;
             }
         }
 
-        return !$this->error;
+        // return !$this->error;
+        return true;
     }
 
     public function log($data = array(), $title = '') {
@@ -337,7 +367,7 @@ class ControllerExtensionFraudBuyercheck extends Controller {
     }
 
     private function getStoreUrl() {
-        return $this->config->get('config_url');
+        return preg_replace("(^https?://)", "", $this->config->get('config_url'));
     }
 
     private function mapOrderStatus($order_status_id) {
@@ -357,5 +387,34 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         }
         
         return 'other';
+    }
+
+    public function order() {
+        $this->load->language('extension/fraud/buyercheck');
+
+        $this->load->model('extension/fraud/buyercheck');
+
+        if (isset($this->request->get['order_id'])) {
+            $order_id = $this->request->get['order_id'];
+        } else {
+            $order_id = 0;
+        }
+
+        $fraud_info = $this->model_extension_fraud_buyercheck->getOrder($order_id);
+
+        if ($fraud_info) {
+            $data['heading_title'] = $this->language->get('heading_title');
+            $data['text_risk_score'] = $this->language->get('text_risk_score');
+            $data['text_recommended_action'] = $this->language->get('text_recommended_action');
+            $data['text_risk_details'] = $this->language->get('text_risk_details');
+            $data['text_calculated_at'] = $this->language->get('text_calculated_at');
+
+            $data['risk_score'] = $fraud_info['risk_score'];
+            $data['recommended_action'] = $fraud_info['recommended_action'];
+            $data['risk_details'] = $fraud_info['risk_details'];
+            $data['calculated_at'] = $fraud_info['calculated_at'];
+
+            return $this->load->view('extension/fraud/buyercheck_info', $data);
+        }
     }
 }

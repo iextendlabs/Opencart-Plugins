@@ -2,3 +2,8 @@
 /system/storage/cache
 /image/cache
 /system/storage/logs
+/system/storage/modification
+system/storage/logs/error.log
+/system/storage/logs
+admin/config.php
+config.php

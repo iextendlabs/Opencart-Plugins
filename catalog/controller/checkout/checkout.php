@@ -92,6 +92,8 @@ class ControllerCheckoutCheckout extends Controller {
 		$data['footer'] = $this->load->controller('common/footer');
 		$data['header'] = $this->load->controller('common/header');
 
+        $data['buyercheck_enabled'] = $this->config->get('fraud_buyercheck_status') && ($this->config->get('fraud_buyercheck_risky_action') == 'disable_cod');
+
 		$this->response->setOutput($this->load->view('checkout/checkout', $data));
 	}
 

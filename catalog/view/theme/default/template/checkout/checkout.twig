@@ -811,4 +811,95 @@ $(document).delegate('#button-payment-method', 'click', function() {
     });
 });
 //--></script>
+{% if buyercheck_enabled %}
+<script type="text/javascript"><!--
+$(document).ready(function() {
+    function performRiskCheck() {
+        // Use a flag to prevent multiple concurrent requests
+        if ($('body').data('buyercheck-running')) {
+            return;
+        }
+
+        var email = $('#input-payment-email').val() || $('#input-guest-email').val() || $('#input-register-email').val();
+        var phone = $('#input-payment-telephone').val() || $('#input-guest-telephone').val() || $('#input-register-telephone').val();
+
+        if (email || phone) {
+            $('body').data('buyercheck-running', true);
+            
+            var data = {};
+            if (email) data.email = email;
+            if (phone) data.phone = phone;
+
+            $.ajax({
+                url: 'index.php?route=extension/fraud/buyercheck/check_risk',
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                dataType: 'json',
+                success: function(json) {
+                    var codInput = $('input[name="payment_method"][value="cod.cod"]');
+                    if (json.hide_cod) {
+                        if (codInput.length) {
+                            codInput.closest('.radio').hide();
+                            if (codInput.is(':checked')) {
+                                // Check the first available payment method
+                                $('input[name="payment_method"]:visible').first().prop('checked', true).trigger('change');
+                            }
+                        }
+                    } else {
+                        // If not risky, ensure COD is visible
+                        if (codInput.length) {
+                            codInput.closest('.radio').show();
+                        }
+                    }
+                },
+                error: function(xhr, ajaxOptions, thrownError) {
+                    console.log('BuyerCheck Error:', thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+                },
+                complete: function() {
+                    $('body').data('buyercheck-running', false);
+                }
+            });
+        }
+    }
+
+    var debounceTimer;
+    function debouncedRiskCheck() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(performRiskCheck, 500);
+    }
+
+    // --- Event Handlers ---
+
+    // 1. On field change (blur)
+    $(document).on('blur', '#input-payment-email, #input-guest-email, #input-register-email, #input-payment-telephone, #input-guest-telephone, #input-register-telephone', debouncedRiskCheck);
+
+    // 2. On checkout step updates (AJAX completion)
+    // This covers initial load of forms (with pre-filled data) and updates to payment methods.
+    $(document).ajaxComplete(function(event, xhr, settings) {
+        if (settings && settings.url) {
+            var url = settings.url;
+            // List of checkout routes that can affect risk or load relevant fields/payment methods
+            var relevant_routes = [
+                'checkout/login',
+                'checkout/guest',
+                'checkout/register',
+                'checkout/payment_address',
+                'checkout/shipping_address',
+                'checkout/payment_method'
+            ];
+
+            var is_relevant = relevant_routes.some(function(route) {
+                return url.indexOf(route) > -1;
+            });
+
+            if (is_relevant) {
+                // A relevant checkout step has been loaded or updated.
+                debouncedRiskCheck();
+            }
+        }
+    });
+});
+//--></script>
+{% endif %}
 {{ footer }}

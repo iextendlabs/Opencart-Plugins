@@ -1,0 +1,8 @@
+# Allow CORS for images from http://localhost:3000
+<FilesMatch "\.(jpg|jpeg|png|gif|webp|svg)$">
+  Header set Access-Control-Allow-Origin "http://localhost:3000"
+</FilesMatch>
+# Allow CORS for index.php from http://localhost:3000
+<Files "index.php">
+  Header set Access-Control-Allow-Origin "http://localhost:3000"
+</Files>

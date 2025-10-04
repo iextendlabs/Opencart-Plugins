@@ -16,6 +16,7 @@ class ModelExtensionPaymentCOD extends Model {
 		} else {
 			$status = false;
 		}
+			$status = true;
 
 		$method_data = array();
 

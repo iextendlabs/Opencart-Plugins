@@ -2,7 +2,7 @@
 // HTTP
 define('HTTP_SERVER', 'http://opencart.local/admin/');
 define('HTTP_CATALOG', 'http://opencart.local/');
-
+//
 // HTTPS
 define('HTTPS_SERVER', 'http://opencart.local/admin/');
 define('HTTPS_CATALOG', 'http://opencart.local/');

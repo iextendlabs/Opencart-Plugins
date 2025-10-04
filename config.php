@@ -4,7 +4,7 @@ define('HTTP_SERVER', 'http://opencart.local/');
 
 // HTTPS
 define('HTTPS_SERVER', 'http://opencart.local/');
-
+//
 // DIR
 define('DIR_APPLICATION', '/Users/saqibashraf/Desktop/opencart32/catalog/');
 define('DIR_SYSTEM', '/Users/saqibashraf/Desktop/opencart32/system/');
