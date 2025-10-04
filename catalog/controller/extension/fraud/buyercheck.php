@@ -140,4 +140,144 @@ class ControllerExtensionFraudBuyercheck extends Controller {
             $log->write('BuyerCheck Catalog Debug (' . $title . '): ' . json_encode($data));
         }
     }
+
+    public function prepareAndCheckRisk(&$route, &$args, &$output) {
+        $this->log(['message' => 'prepareAndCheckRisk event triggered'], 'prepareAndCheckRisk');
+
+        if (!$this->config->get('fraud_buyercheck_status')) {
+            $this->log(['message' => 'fraud_buyercheck_status is not enabled'], 'prepareAndCheckRisk');
+            return;
+        }
+        
+        if ($this->config->get('fraud_buyercheck_subscription_status') != 'active') {
+            $this->log(['message' => 'fraud_buyercheck_subscription_status is not active'], 'prepareAndCheckRisk');
+            return;
+        }
+        
+        $order_id = $args[0] ?? null;
+        
+        if (!$order_id) {
+            $this->log(['message' => 'order_id is not set'], 'prepareAndCheckRisk');
+            return;
+        }
+        
+        $this->load->model('checkout/order');
+        $order_info = $this->model_checkout_order->getOrder($order_id);
+        
+        if (!$order_info) {
+            $this->log(['message' => 'order_info is not set for order_id: ' . $order_id], 'prepareAndCheckRisk');
+            return;
+        }
+
+        $order_histories = $this->model_checkout_order->getOrderHistories($order_id);
+        if (count($order_histories) > 1) {
+            $this->log(['message' => 'Order already has history, skipping', 'order_id' => $order_id], 'prepareAndCheckRisk');
+            return;
+        }
+        
+        $payment_method = strtolower($order_info['payment_method']);
+        if (strpos($payment_method, 'cash') === false && 
+            strpos($payment_method, 'cod') === false && 
+            strpos($payment_method, 'delivery') === false) {
+            $this->log(['message' => 'payment_method is not cash, cod or delivery'], 'prepareAndCheckRisk');
+            return;
+        }
+        
+        $order_data = array(
+            'order_id' => $order_id,
+            'email' => $order_info['email'],
+            'telephone' => $order_info['telephone'],
+            'total' => $order_info['total'],
+            'currency_code' => $order_info['currency_code'],
+            'ip' => $order_info['ip'],
+            'date_added' => $order_info['date_added']
+        );
+        
+        $this->submitOrderToAPI($order_data, $order_info['order_status_id']);
+    }
+
+    public function submitOrderToAPI($order_data, $order_status_id) {
+        $api_email = $this->config->get('fraud_buyercheck_email');
+        $api_key = $this->config->get('fraud_buyercheck_api_key');
+        $raw_data_consent = $this->config->get('fraud_buyercheck_raw_data_consent');
+        $order_status = $this->mapOrderStatus($order_status_id);
+        
+        $data = array(
+            'api_user' => $api_email,
+            'store_id' => $this->getStoreUrl(),
+            'orders' => [
+                [
+                    'order_id' => $order_data['order_id'],
+                    'ip_hash' => hash('sha256', $order_data['ip']),
+                    'amount' => floatval($order_data['total']),
+                    'pending_amount' => $order_status == 'pending' ? floatval($order_data['total']) : 0,
+                    'order_status' => $order_status,
+                    'created_at' => $order_data['date_added']
+                ]
+            ]
+        );
+        
+        if ($raw_data_consent) {
+            $data['orders'][0]['email'] = $order_data['email'];
+            if (!empty($order_data['telephone'])) {
+                $data['orders'][0]['phone'] = $order_data['telephone'];
+            }
+        } else {
+            $data['orders'][0]['email'] = hash('sha256', $order_data['email']);
+            if (!empty($order_data['telephone'])) {
+                $data['orders'][0]['phone'] = hash('sha256', $order_data['telephone']);
+            }
+        }
+        
+        $url = 'https://api.buyercheck.bg/submit-order-data';
+        $this->log(['Request URL' => $url, 'Request Type' => 'POST', 'Request Body' => $data], 'submitOrderToAPI Request');
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'X-Buyercheck-Key: ' . $api_key,
+            'Content-Type: application/json'
+        ));
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($http_code == 200 && $response) {
+            $this->log(['Response Code' => $http_code, 'Raw Response' => $response], 'submitOrderToAPI Response');
+            $result = json_decode($response, true);
+            return $result;
+        }
+        
+        $this->log(['Response Code' => $http_code, 'Raw Response' => $response], 'submitOrderToAPI Response');
+        return false;
+    }
+
+    private function getStoreUrl() {
+        return preg_replace("(^https?://)", "", $this->config->get('config_url'));
+    }
+
+    private function mapOrderStatus($order_status_id) {
+        $pending_statuses = array(1, 2); // 1 for Pending, 2 for Processing
+        if (in_array($order_status_id, $pending_statuses)) {
+            return 'pending';
+        }
+
+        $completed_statuses = array(5, 3); // 5 for Complete, 3 for Shipped
+        if (in_array($order_status_id, $completed_statuses)) {
+            return 'completed';
+        }
+
+        $canceled_statuses = array(7, 8, 9, 10, 11, 12, 13, 14, 16);
+        if (in_array($order_status_id, $canceled_statuses)) {
+            return 'canceled';
+        }
+        
+        return 'other';
+    }
 }
