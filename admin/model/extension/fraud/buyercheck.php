@@ -8,6 +8,41 @@ class ModelExtensionFraudBuyercheck extends Model {
         $this->db->query("DROP TABLE IF EXISTS `" . DB_PREFIX . "buyercheck_orders`");
     }
 
+    public function getOrder($order_id) {
+        $query = $this->db->query("SELECT * FROM `" . DB_PREFIX . "buyercheck_orders` WHERE `order_id` = '" . (int)$order_id . "'");
+        return $query->row;
+    }
+
+    public function getOrders($data = array()) {
+        $sql = "SELECT * FROM `" . DB_PREFIX . "buyercheck_orders`";
+        $sort_data = array(
+            'order_id',
+            'risk_score',
+            'calculated_at'
+        );
+        if (isset($data['sort']) && in_array($data['sort'], $sort_data)) {
+            $sql .= " ORDER BY " . $data['sort'];
+        } else {
+            $sql .= " ORDER BY order_id";
+        }
+        if (isset($data['order']) && ($data['order'] == 'DESC')) {
+            $sql .= " DESC";
+        } else {
+            $sql .= " ASC";
+        }
+        if (isset($data['start']) || isset($data['limit'])) {
+            if ($data['start'] < 0) {
+                $data['start'] = 0;
+            }
+            if ($data['limit'] < 1) {
+                $data['limit'] = 20;
+            }
+            $sql .= " LIMIT " . (int)$data['start'] . "," . (int)$data['limit'];
+        }
+        $query = $this->db->query($sql);
+        return $query->rows;
+    }
+
     public function validateAPI($email, $api_key, $store_category, $raw_data_consent) {
         $data = array(
             'api_user' => $email,

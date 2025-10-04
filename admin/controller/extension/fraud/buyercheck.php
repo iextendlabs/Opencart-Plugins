@@ -122,6 +122,9 @@ class ControllerExtensionFraudBuyercheck extends Controller {
 
         $data['store_categories'] = $this->getStoreCategories();
 
+        $data['logs'] = $this->url->link('extension/fraud/buyercheck/logs', 'user_token=' . $this->session->data['user_token'], true);
+        $data['orders'] = $this->url->link('extension/fraud/buyercheck/order_list', 'user_token=' . $this->session->data['user_token'], true);
+
         $data['header'] = $this->load->controller('common/header');
         $data['column_left'] = $this->load->controller('common/column_left');
         $data['footer'] = $this->load->controller('common/footer');
@@ -417,5 +420,89 @@ class ControllerExtensionFraudBuyercheck extends Controller {
 
             return $this->load->view('extension/fraud/buyercheck_info', $data);
         }
+    }
+
+    public function logs() {
+        $this->load->language('extension/fraud/buyercheck');
+        $this->document->setTitle($this->language->get('heading_title'));
+        $data['heading_title'] = $this->language->get('heading_title');
+        $data['text_logs'] = $this->language->get('text_logs');
+        $data['text_no_results'] = $this->language->get('text_no_results');
+        $data['button_clear'] = $this->language->get('button_clear');
+
+        $data['breadcrumbs'] = array();
+        $data['breadcrumbs'][] = array(
+            'text' => $this->language->get('text_home'),
+            'href' => $this->url->link('common/dashboard', 'user_token=' . $this->session->data['user_token'], true)
+        );
+        $data['breadcrumbs'][] = array(
+            'text' => $this->language->get('text_extension'),
+            'href' => $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=fraud', true)
+        );
+        $data['breadcrumbs'][] = array(
+            'text' => $this->language->get('heading_title'),
+            'href' => $this->url->link('extension/fraud/buyercheck', 'user_token=' . $this->session->data['user_token'], true)
+        );
+        $data['clear_log'] = $this->url->link('extension/fraud/buyercheck/clear_log', 'user_token=' . $this->session->data['user_token'], true);
+        $data['log'] = '';
+        $file = DIR_LOGS . 'buyercheck.log';
+        if (file_exists($file)) {
+            $data['log'] = file_get_contents($file, FILE_USE_INCLUDE_PATH, null);
+        }
+        $data['header'] = $this->load->controller('common/header');
+        $data['column_left'] = $this->load->controller('common/column_left');
+        $data['footer'] = $this->load->controller('common/footer');
+        $this->response->setOutput($this->load->view('extension/fraud/buyercheck_logs', $data));
+    }
+
+    public function clear_log() {
+        $this->load->language('extension/fraud/buyercheck');
+        if ($this->user->hasPermission('modify', 'extension/fraud/buyercheck')) {
+            $file = DIR_LOGS . 'buyercheck.log';
+            $handle = fopen($file, 'w+');
+            fclose($handle);
+            $this->session->data['success'] = $this->language->get('text_success');
+        }
+        $this->response->redirect($this->url->link('extension/fraud/buyercheck/logs', 'user_token=' . $this->session->data['user_token'], true));
+    }
+
+    public function order_list() {
+        $this->load->language('extension/fraud/buyercheck');
+        $this->document->setTitle($this->language->get('heading_title'));
+        $this->load->model('extension/fraud/buyercheck');
+        $data['heading_title'] = $this->language->get('heading_title');
+        $data['text_no_results'] = $this->language->get('text_no_results');
+        $data['column_order_id'] = $this->language->get('column_order_id');
+        $data['column_risk_score'] = $this->language->get('column_risk_score');
+        $data['column_recommended_action'] = $this->language->get('column_recommended_action');
+        $data['column_calculated_at'] = $this->language->get('column_calculated_at');
+        $data['breadcrumbs'] = array();
+        $data['breadcrumbs'][] = array(
+            'text' => $this->language->get('text_home'),
+            'href' => $this->url->link('common/dashboard', 'user_token=' . $this->session->data['user_token'], true)
+        );
+        $data['breadcrumbs'][] = array(
+            'text' => $this->language->get('text_extension'),
+            'href' => $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=fraud', true)
+        );
+        $data['breadcrumbs'][] = array(
+            'text' => $this->language->get('heading_title'),
+            'href' => $this->url->link('extension/fraud/buyercheck', 'user_token=' . $this->session->data['user_token'], true)
+        );
+        $data['orders'] = array();
+        $results = $this->model_extension_fraud_buyercheck->getOrders();
+        foreach ($results as $result) {
+            $data['orders'][] = array(
+                'order_id' => $result['order_id'],
+                'risk_score' => $result['risk_score'],
+                'recommended_action' => $result['recommended_action'],
+                'calculated_at' => $result['calculated_at'],
+                'view' => $this->url->link('sale/order/info', 'user_token=' . $this->session->data['user_token'] . '&order_id=' . $result['order_id'], true)
+            );
+        }
+        $data['header'] = $this->load->controller('common/header');
+        $data['column_left'] = $this->load->controller('common/column_left');
+        $data['footer'] = $this->load->controller('common/footer');
+        $this->response->setOutput($this->load->view('extension/fraud/buyercheck_orders', $data));
     }
 }

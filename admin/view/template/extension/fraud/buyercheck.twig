@@ -24,106 +24,114 @@
         <h3 class="panel-title"><i class="fa fa-pencil"></i> {{ text_edit }}</h3>
       </div>
       <div class="panel-body">
-        <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-fraud" class="form-horizontal">
-          <div class="form-group">
-            <label class="col-sm-2 control-label" for="input-status">{{ entry_status }}</label>
-            <div class="col-sm-10">
-              <select name="fraud_buyercheck_status" id="input-status" class="form-control">
-                {% if fraud_buyercheck_status %}
-                <option value="1" selected="selected">{{ text_enabled }}</option>
-                <option value="0">{{ text_disabled }}</option>
-                {% else %}
-                <option value="1">{{ text_enabled }}</option>
-                <option value="0" selected="selected">{{ text_disabled }}</option>
-                {% endif %}
-              </select>
-            </div>
-          </div>
-          <div class="form-group required">
-            <label class="col-sm-2 control-label" for="input-email">{{ entry_email }}</label>
-            <div class="col-sm-10">
-              <input type="text" name="fraud_buyercheck_email" value="{{ fraud_buyercheck_email }}" placeholder="{{ entry_email }}" id="input-email" class="form-control" />
-              {% if error_email %}
-              <div class="text-danger">{{ error_email }}</div>
-              {% endif %}
-            </div>
-          </div>
-          <div class="form-group required">
-            <label class="col-sm-2 control-label" for="input-api-key">{{ entry_api_key }}</label>
-            <div class="col-sm-10">
-              <input type="text" name="fraud_buyercheck_api_key" value="{{ fraud_buyercheck_api_key }}" placeholder="{{ entry_api_key }}" id="input-api-key" class="form-control" />
-              {% if error_api_key %}
-              <div class="text-danger">{{ error_api_key }}</div>
-              {% endif %}
-            </div>
-          </div>
-          
-          <div class="form-group required">
-            <label class="col-sm-2 control-label" for="input-store-category">{{ entry_store_category }}</label>
-            <div class="col-sm-10">
-              <select name="fraud_buyercheck_store_category" id="input-store-category" class="form-control">
-                <option value="">{{ text_select }}</option>
-                {% for category in store_categories %}
-                {% if category.value == fraud_buyercheck_store_category %}
-                <option value="{{ category.value }}" selected="selected">{{ category.text }}</option>
-                {% else %}
-                <option value="{{ category.value  }}">{{ category.text }}</option>
-                {% endif %}
-                {% endfor %}
-              </select>
-              {% if error_store_category %}
-              <div class="text-danger">{{ error_store_category }}</div>
-              {% endif %}
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="col-sm-2 control-label">{{ entry_raw_data_consent }}</label>
-            <div class="col-sm-10">
-              <label class="checkbox-inline">
-                {% if fraud_buyercheck_raw_data_consent %}
-                <input type="checkbox" name="fraud_buyercheck_raw_data_consent" value="1" checked="checked" />
-                {% else %}
-                <input type="checkbox" name="fraud_buyercheck_raw_data_consent" value="1" />
-                {% endif %}
-                {{ text_yes }}
-              </label>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="col-sm-2 control-label" for="input-webhook-secret">{{ entry_webhook_secret }}</label>
-            <div class="col-sm-10">
-              <input type="text" name="fraud_buyercheck_webhook_secret" value="{{ fraud_buyercheck_webhook_secret }}" placeholder="{{ entry_webhook_secret }}" id="input-webhook-secret" class="form-control" />
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="col-sm-2 control-label" for="input-webhook-url">{{ entry_webhook_url }}</label>
-            <div class="col-sm-10">
-              <input type="text" name="fraud_buyercheck_webhook_url" value="{{ fraud_buyercheck_webhook_url }}" placeholder="{{ entry_webhook_url }}" id="input-webhook-url" class="form-control" />
-            </div>
-          </div>
-          {% if fraud_buyercheck_api_key and fraud_buyercheck_email %}
-          <fieldset>
-            <legend>{{ text_risky_action }}</legend>
-            <div class="form-group">
-              <label class="col-sm-2 control-label">{{ entry_risky_action }}</label>
-              <div class="col-sm-10">
-                <div class="radio">
-                  <label>
-                    <input type="radio" name="fraud_buyercheck_risky_action" value="do_nothing" {% if fraud_buyercheck_risky_action == 'do_nothing' %}checked="checked"{% endif %} />
-                    {{ text_do_nothing }}
-                  </label>
+        <ul class="nav nav-tabs">
+          <li class="active"><a href="#tab-settings" data-toggle="tab">{{ tab_settings }}</a></li>
+          <li><a href="{{ logs }}">{{ tab_logs }}</a></li>
+          <li><a href="{{ orders }}">{{ tab_orders }}</a></li>
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane active" id="tab-settings">
+            <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-fraud" class="form-horizontal">
+              <div class="form-group">
+                <label class="col-sm-2 control-label" for="input-status">{{ entry_status }}</label>
+                <div class="col-sm-10">
+                  <select name="fraud_buyercheck_status" id="input-status" class="form-control">
+                    {% if fraud_buyercheck_status %}
+                    <option value="1" selected="selected">{{ text_enabled }}</option>
+                    <option value="0">{{ text_disabled }}</option>
+                    {% else %}
+                    <option value="1">{{ text_enabled }}</option>
+                    <option value="0" selected="selected">{{ text_disabled }}</option>
+                    {% endif %}
+                  </select>
                 </div>
-                <div class="radio">
-                  <label>
-                    <input type="radio" name="fraud_buyercheck_risky_action" value="disable_cod" {% if fraud_buyercheck_risky_action == 'disable_cod' %}checked="checked"{% endif %} />
-                    {{ text_disable_cod }}
+              </div>
+              <div class="form-group required">
+                <label class="col-sm-2 control-label" for="input-email">{{ entry_email }}</label>
+                <div class="col-sm-10">
+                  <input type="text" name="fraud_buyercheck_email" value="{{ fraud_buyercheck_email }}" placeholder="{{ entry_email }}" id="input-email" class="form-control" />
+                  {% if error_email %}
+                  <div class="text-danger">{{ error_email }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="form-group required">
+                <label class="col-sm-2 control-label" for="input-api-key">{{ entry_api_key }}</label>
+                <div class="col-sm-10">
+                  <input type="text" name="fraud_buyercheck_api_key" value="{{ fraud_buyercheck_api_key }}" placeholder="{{ entry_api_key }}" id="input-api-key" class="form-control" />
+                  {% if error_api_key %}
+                  <div class="text-danger">{{ error_api_key }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="form-group required">
+                <label class="col-sm-2 control-label" for="input-store-category">{{ entry_store_category }}</label>
+                <div class="col-sm-10">
+                  <select name="fraud_buyercheck_store_category" id="input-store-category" class="form-control">
+                    <option value="">{{ text_select }}</option>
+                    {% for category in store_categories %}
+                    {% if category.value == fraud_buyercheck_store_category %}
+                    <option value="{{ category.value }}" selected="selected">{{ category.text }}</option>
+                    {% else %}
+                    <option value="{{ category.value  }}">{{ category.text }}</option>
+                    {% endif %}
+                    {% endfor %}
+                  </select>
+                  {% if error_store_category %}
+                  <div class="text-danger">{{ error_store_category }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-2 control-label">{{ entry_raw_data_consent }}</label>
+                <div class="col-sm-10">
+                  <label class="checkbox-inline">
+                    {% if fraud_buyercheck_raw_data_consent %}
+                    <input type="checkbox" name="fraud_buyercheck_raw_data_consent" value="1" checked="checked" />
+                    {% else %}
+                    <input type="checkbox" name="fraud_buyercheck_raw_data_consent" value="1" />
+                    {% endif %}
+                    {{ text_yes }}
                   </label>
                 </div>
               </div>
-            </div>
-          </fieldset>
-          {% endif %}
-        </form>
+              <div class="form-group">
+                <label class="col-sm-2 control-label" for="input-webhook-secret">{{ entry_webhook_secret }}</label>
+                <div class="col-sm-10">
+                  <input type="text" name="fraud_buyercheck_webhook_secret" value="{{ fraud_buyercheck_webhook_secret }}" placeholder="{{ entry_webhook_secret }}" id="input-webhook-secret" class="form-control" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-2 control-label" for="input-webhook-url">{{ entry_webhook_url }}</label>
+                <div class="col-sm-10">
+                  <input type="text" name="fraud_buyercheck_webhook_url" value="{{ fraud_buyercheck_webhook_url }}" placeholder="{{ entry_webhook_url }}" id="input-webhook-url" class="form-control" />
+                </div>
+              </div>
+              {% if fraud_buyercheck_api_key and fraud_buyercheck_email %}
+              <fieldset>
+                <legend>{{ text_risky_action }}</legend>
+                <div class="form-group">
+                  <label class="col-sm-2 control-label">{{ entry_risky_action }}</label>
+                  <div class="col-sm-10">
+                    <div class="radio">
+                      <label>
+                        <input type="radio" name="fraud_buyercheck_risky_action" value="do_nothing" {% if fraud_buyercheck_risky_action == 'do_nothing' %}checked="checked"{% endif %} />
+                        {{ text_do_nothing }}
+                      </label>
+                    </div>
+                    <div class="radio">
+                      <label>
+                        <input type="radio" name="fraud_buyercheck_risky_action" value="disable_cod" {% if fraud_buyercheck_risky_action == 'disable_cod' %}checked="checked"{% endif %} />
+                        {{ text_disable_cod }}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+              {% endif %}
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   </div>

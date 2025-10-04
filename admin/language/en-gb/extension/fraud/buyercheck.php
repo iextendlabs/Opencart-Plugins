@@ -14,6 +14,22 @@ $_['text_select']      = '-- Please Select --';
 $_['text_do_nothing']  = 'Do Nothing';
 $_['text_disable_cod'] = 'Disable COD';
 $_['text_risky_action'] = 'Risky Action';
+$_['text_logs']        = 'Logs';
+
+// Tabs
+$_['tab_settings']   = 'Settings';
+$_['tab_logs']       = 'Logs';
+$_['tab_orders']     = 'Orders';
+
+// Column
+$_['column_order_id'] = 'Order ID';
+$_['column_risk_score'] = 'Risk Score';
+$_['column_recommended_action'] = 'Recommended Action';
+$_['column_calculated_at'] = 'Calculated At';
+$_['column_action'] = 'Action';
+
+// Button
+$_['button_clear']     = 'Clear';
 
 // Entry
 $_['entry_status']     = 'Status';
