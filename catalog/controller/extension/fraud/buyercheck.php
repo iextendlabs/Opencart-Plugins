@@ -90,7 +90,7 @@ class ControllerExtensionFraudBuyercheck extends Controller {
 
         $data = array(
             'api_user' => $api_email,
-            'store_id' => preg_replace("(^https?://)", "", $this->config->get('config_url')),
+            'store_id' => $this->getStoreUrl(),
             'email' => $raw_data_consent ? $email : hash('sha256', $email),
             'amount' => $cart_total,
             'ip_hash' => hash('sha256', $ip_address)
