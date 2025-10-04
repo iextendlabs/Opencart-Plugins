@@ -205,7 +205,7 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         
         $data = array(
             'api_user' => $api_email,
-            'store_id' => $this->getStoreUrl(),
+            'store_id' => rtrim(HTTPS_SERVER, '/'),
             'orders' => [
                 [
                     'order_id' => $order_data['order_id'],
