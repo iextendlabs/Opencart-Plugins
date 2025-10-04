@@ -837,7 +837,7 @@ $(document).ready(function() {
                 contentType: 'application/json',
                 dataType: 'json',
                 success: function(json) {
-                    var codInput = $('input[name="payment_method"][value="cod.cod"]');
+                    var codInput = $('input[name="payment_method"][value*="cod"]');
                     if (json.hide_cod) {
                         if (codInput.length) {
                             codInput.closest('.radio').hide();
