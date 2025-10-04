@@ -242,6 +242,13 @@ class ControllerExtensionFraudBuyercheck extends Controller {
             'X-Buyercheck-Key: ' . $api_key,
             'Content-Type: application/json'
         ));
+
+         // log request headers
+        $this->log(['Request Headers' => array(
+            'X-Buyercheck-Key: ' . $api_key,
+            'Content-Type: application/json'
+        )], 'submitOrderToAPI Request Headers');
+        
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         
