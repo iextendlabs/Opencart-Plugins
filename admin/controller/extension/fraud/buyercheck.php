@@ -448,6 +448,7 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         $data['text_logs'] = $this->language->get('text_logs');
         $data['text_no_results'] = $this->language->get('text_no_results');
         $data['button_clear'] = $this->language->get('button_clear');
+        $data['button_cancel'] = $this->language->get('button_cancel');
 
         $data['breadcrumbs'] = array();
         $data['breadcrumbs'][] = array(
@@ -462,6 +463,7 @@ class ControllerExtensionFraudBuyercheck extends Controller {
             'text' => $this->language->get('heading_title'),
             'href' => $this->url->link('extension/fraud/buyercheck', 'user_token=' . $this->session->data['user_token'], true)
         );
+        $data['cancel'] = $this->url->link('extension/fraud/buyercheck', 'user_token=' . $this->session->data['user_token'], true);
         $data['clear_log'] = $this->url->link('extension/fraud/buyercheck/clear_log', 'user_token=' . $this->session->data['user_token'], true);
         $data['log'] = '';
         $file = DIR_LOGS . 'buyercheck.log';

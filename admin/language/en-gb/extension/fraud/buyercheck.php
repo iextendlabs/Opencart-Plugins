@@ -30,6 +30,8 @@ $_['column_action'] = 'Action';
 
 // Button
 $_['button_clear']     = 'Clear';
+$_['button_save']      = 'Save';
+$_['button_cancel']    = 'Cancel';
 
 // Entry
 $_['entry_status']     = 'Status';
