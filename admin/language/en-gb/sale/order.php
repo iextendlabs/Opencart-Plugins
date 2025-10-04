@@ -77,6 +77,7 @@ $_['column_notify']              = 'Customer Notified';
 $_['column_location']            = 'Location';
 $_['column_reference']           = 'Reference';
 $_['column_action']              = 'Action';
+$_['column_risk_score']          = 'Risk Score';
 $_['column_weight']              = 'Product Weight';
 
 // Entry

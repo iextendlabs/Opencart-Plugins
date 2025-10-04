@@ -210,7 +210,7 @@ class ControllerExtensionFraudBuyercheck extends Controller {
 
             $data = array(
                 'api_user' => $this->request->post['fraud_buyercheck_email'],
-                'domain' => preg_replace("(^https?://)", "", HTTPS_SERVER),
+                'domain' => rtrim(HTTP_CATALOG, '/'),
                 'category' => $this->request->post['fraud_buyercheck_store_category'],
                 'webhook_secret' => $webhook_secret,
                 'webhook_url' => $webhook_full_url,
