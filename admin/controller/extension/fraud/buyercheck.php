@@ -241,8 +241,8 @@ class ControllerExtensionFraudBuyercheck extends Controller {
             }
         }
 
-        // return !$this->error;
-        return true;
+        return !$this->error;
+        // return true;
     }
 
     public function log($data = array(), $title = '') {
