@@ -251,7 +251,7 @@ class ControllerExtensionFraudBuyercheck extends Controller {
     }
 
     private function getStoreUrl() {
-        return preg_replace("(^https?://)", "", $this->config->get('config_url'));
+        return preg_replace("(^https?://)", "", rtrim($this->config->get('config_url'), '/'));
     }
 
     private function mapOrderStatus($order_status_id) {

@@ -14,7 +14,6 @@ class ControllerExtensionFraudBuyercheck extends Controller {
     ];
 
     public function index() {
-        $this->log(['message' => 'BuyerCheck settings page accessed.'], 'index');
 
         $this->load->language('extension/fraud/buyercheck');
 
@@ -324,7 +323,6 @@ class ControllerExtensionFraudBuyercheck extends Controller {
     }
 
     public function logs() {
-        $this->log(['message' => 'Logs page accessed.'], 'logs');
 
         $this->load->language('extension/fraud/buyercheck');
         $this->document->setTitle($this->language->get('heading_title'));
