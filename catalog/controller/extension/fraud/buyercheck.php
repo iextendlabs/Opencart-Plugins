@@ -383,6 +383,3 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         return $http_code == 200;
     }
 }
-
-}
-}
