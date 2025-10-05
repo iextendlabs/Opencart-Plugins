@@ -339,7 +339,12 @@ class ControllerExtensionFraudBuyercheck extends Controller {
             }
 
             if (!empty($orders_to_submit)) {
-                $this->submitBatchToAPI($orders_to_submit);
+                $data = [
+                    'api_user' => $email,
+                    'store_id' => $this->getStoreUrl(),
+                    'orders' => $orders_to_submit
+                ];
+                $this->submitBatchToAPI($data);
             }
 
             $page++;
@@ -348,15 +353,8 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         $this->log(['message' => 'process_orders cron job finished.'], 'process_orders');
     }
 
-    public function submitBatchToAPI($orders) {
-        $api_email = $this->config->get('fraud_buyercheck_email');
+    public function submitBatchToAPI($data) {
         $api_key = $this->config->get('fraud_buyercheck_api_key');
-
-        $data = array(
-            'api_user' => $api_email,
-            'store_id' => $this->getStoreUrl(),
-            'orders' => $orders
-        );
 
         $url = 'https://api.buyercheck.bg/submit-order-data';
         $this->log(['Request URL' => $url, 'Request Type' => 'POST', 'Request Body' => $data], 'submitBatchToAPI Request');
