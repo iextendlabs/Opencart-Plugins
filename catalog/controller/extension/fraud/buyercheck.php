@@ -6,7 +6,7 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         $webhook_secret = $this->config->get('fraud_buyercheck_webhook_secret');
         $webhook_url_path = $this->config->get('fraud_buyercheck_webhook_url');
 
-        if (($this->request->server['REQUEST_METHOD'] == 'POST') && isset($this->request->get['path']) && ($this->request->get['path'] == $webhook_url_path)) {
+        if ($this->request->server['REQUEST_METHOD'] == 'POST') {
             $timestamp = $this->request->server['HTTP_X_BUYERCHECK_TIMESTAMP'] ?? null;
             if (!$timestamp || abs(time() - (int) $timestamp) > 300) { // 5 minute window
                 $this->log(['message' => 'Timestamp is invalid or expired.'], 'webhook');
