@@ -15,6 +15,7 @@ $_['text_do_nothing']  = 'Do Nothing';
 $_['text_disable_cod'] = 'Disable COD';
 $_['text_risky_action'] = 'Risky Action';
 $_['text_logs']        = 'Logs';
+$_['text_risk_details'] = 'Risk Details';
 
 // Tabs
 $_['tab_settings']   = 'Settings';

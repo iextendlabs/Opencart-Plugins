@@ -308,10 +308,10 @@ class ControllerExtensionFraudBuyercheck extends Controller {
 
         if ($fraud_info) {
             $data['heading_title'] = $this->language->get('heading_title');
-            $data['text_risk_score'] = $this->language->get('text_risk_score');
-            $data['text_recommended_action'] = $this->language->get('text_recommended_action');
+            $data['text_risk_score'] = $this->language->get('column_risk_score');
+            $data['text_recommended_action'] = $this->language->get('column_recommended_action');
             $data['text_risk_details'] = $this->language->get('text_risk_details');
-            $data['text_calculated_at'] = $this->language->get('text_calculated_at');
+            $data['text_calculated_at'] = $this->language->get('column_calculated_at');
 
             $data['risk_score'] = $fraud_info['risk_score'];
             $data['recommended_action'] = $fraud_info['recommended_action'];
