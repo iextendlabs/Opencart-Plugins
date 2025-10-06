@@ -44,6 +44,7 @@ $_['entry_risky_action'] = 'Risky Action';
 $_['entry_webhook_secret'] = 'Webhook Secret';
 $_['entry_webhook_url']    = 'Webhook URL';
 $_['entry_logging'] = 'Debug Logging';
+$_['entry_order_status'] = 'Fraudulent Order Status';
 
 // Help
 $_['help_logging'] = 'Enable this to start logging debug information in the BuyerCheck log file.';

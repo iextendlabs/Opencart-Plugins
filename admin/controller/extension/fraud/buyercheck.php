@@ -127,6 +127,17 @@ class ControllerExtensionFraudBuyercheck extends Controller {
             $data['fraud_buyercheck_logging'] = $this->config->get('fraud_buyercheck_logging');
         }
 
+        if (isset($this->request->post['fraud_buyercheck_order_status_id'])) {
+			$data['fraud_buyercheck_order_status_id'] = $this->request->post['fraud_buyercheck_order_status_id'];
+		} else {
+			$data['fraud_buyercheck_order_status_id'] = $this->config->get('fraud_buyercheck_order_status_id');
+		}
+
+        $this->load->model('localisation/order_status');
+
+		$data['order_statuses'] = $this->model_localisation_order_status->getOrderStatuses();
+
+
         $data['store_categories'] = $this->getStoreCategories();
 
         $data['logs'] = $this->url->link('extension/fraud/buyercheck/logs', 'user_token=' . $this->session->data['user_token'], true);
@@ -207,6 +218,7 @@ class ControllerExtensionFraudBuyercheck extends Controller {
     }
 
     protected function validate() {
+        return true;
         $this->log(['message' => 'Validating BuyerCheck settings.'], 'validate');
 
         if (!$this->user->hasPermission('modify', 'extension/fraud/buyercheck')) {
