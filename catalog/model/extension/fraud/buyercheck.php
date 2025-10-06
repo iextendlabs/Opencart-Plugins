@@ -2,7 +2,7 @@
 class ModelExtensionFraudBuyercheck extends Model {
 
     public function check($data) {
-		if (!$this->config->get('fraud_buyercheck_status')) {
+		if (!$this->config->get('fraud_buyercheck_status') || !$this->config->get('fraud_buyercheck_order_status_id')) {
 			return;
 		}
 

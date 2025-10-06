@@ -137,6 +137,8 @@ class ControllerExtensionFraudBuyercheck extends Controller {
 
 		$data['order_statuses'] = $this->model_localisation_order_status->getOrderStatuses();
 
+        array_unshift($data['order_statuses'], array('order_status_id' => 0, 'name' => $this->language->get('text_do_nothing')));
+
 
         $data['store_categories'] = $this->getStoreCategories();
 
