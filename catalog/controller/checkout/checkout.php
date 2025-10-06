@@ -94,6 +94,14 @@ class ControllerCheckoutCheckout extends Controller {
 
         $data['buyercheck_enabled'] = $this->config->get('fraud_buyercheck_status') && ($this->config->get('fraud_buyercheck_risky_action') == 'disable_cod');
 
+        if ($this->customer->isLogged()) {
+            $data['customer_email'] = $this->customer->getEmail();
+            $data['customer_telephone'] = $this->customer->getTelephone();
+        } else {
+            $data['customer_email'] = '';
+            $data['customer_telephone'] = '';
+        }
+
 		$this->response->setOutput($this->load->view('checkout/checkout', $data));
 	}
 

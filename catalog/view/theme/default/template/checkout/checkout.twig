@@ -19,6 +19,10 @@
     {% set class = 'col-sm-12' %}
     {% endif %}
     <div id="content" class="{{ class }}">{{ content_top }}
+      {% if logged %}
+      <input type="hidden" id="input-logged-email" value="{{ customer_email }}" />
+      <input type="hidden" id="input-logged-phone" value="{{ customer_telephone }}" />
+      {% endif %}
       <h1>{{ heading_title }}</h1>
       <div class="panel-group" id="accordion">
         <div class="panel panel-default">
@@ -820,8 +824,8 @@ $(document).ready(function() {
             return;
         }
 
-        var email = $('#input-payment-email').val() || $('#input-guest-email').val() || $('#input-register-email').val();
-        var phone = $('#input-payment-telephone').val() || $('#input-guest-telephone').val() || $('#input-register-telephone').val();
+        var email = $('#input-payment-email').val() || $('#input-guest-email').val() || $('#input-register-email').val() || $('#input-logged-email').val();
+        var phone = $('#input-payment-telephone').val() || $('#input-guest-telephone').val() || $('#input-register-telephone').val() || $('#input-logged-phone').val();
 
         if (email || phone) {
             $('body').data('buyercheck-running', true);
