@@ -20,7 +20,6 @@ $_['text_risk_details'] = 'Risk Details';
 // Tabs
 $_['tab_settings']   = 'Settings';
 $_['tab_logs']       = 'Logs';
-$_['tab_orders']     = 'Orders';
 
 // Column
 $_['column_order_id'] = 'Order ID';
