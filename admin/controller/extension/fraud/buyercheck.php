@@ -219,7 +219,6 @@ class ControllerExtensionFraudBuyercheck extends Controller {
     }
 
     protected function validate() {
-        return true;
         $this->log(['message' => 'Validating BuyerCheck settings.'], 'validate');
 
         if (!$this->user->hasPermission('modify', 'extension/fraud/buyercheck')) {
