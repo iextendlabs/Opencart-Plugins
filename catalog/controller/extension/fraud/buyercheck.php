@@ -78,6 +78,24 @@ class ControllerExtensionFraudBuyercheck extends Controller {
         $cart_total = $this->cart->getTotal();
         $ip_address = $this->request->server['REMOTE_ADDR'];
 
+        $cache_key_data = [
+            'email' => $email,
+            'phone' => $phone,
+            'cart_total' => $cart_total,
+            'ip_address' => $ip_address
+        ];
+        $cache_key = 'buyercheck_risk_' . md5(json_encode($cache_key_data));
+
+        $cache = new Cache($this->config->get('cache_type') ? $this->config->get('cache_type') : 'file', 900);
+        $cached_response = $cache->get($cache_key);
+
+        if ($cached_response) {
+            $this->log(['message' => 'Returning cached response for check_risk.'], 'check_risk');
+            $this->response->addHeader('Content-Type: application/json');
+            $this->response->setOutput(json_encode($cached_response));
+            return;
+        }
+
         if ((!$email && !$phone) || $cart_total <= 0) {
             $this->log(['message' => 'Email/phone or cart total is empty, skipping risk check.'], 'check_risk');
             $json['hide_cod'] = false;
@@ -130,6 +148,8 @@ class ControllerExtensionFraudBuyercheck extends Controller {
                 $json['hide_cod'] = true;
             }
         }
+
+        $cache->set($cache_key, $json);
 
         $this->response->addHeader('Content-Type: application/json');
         $this->response->setOutput(json_encode($json));
