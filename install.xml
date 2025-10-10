@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+	<code>buyercheck</code>
+	<name>buyercheck</name>
+	<version>1.0</version>
+	<author>buyercheck</author>
+	<link>https://buyercheck.bg</link>
+	<file path="admin/controller/sale/order.php">
+    <operation>
+        <search><![CDATA[
+            $order_total = $this->model_sale_order->getTotalOrders($filter_data);
+         ]]></search>
+        <add position="after"><![CDATA[$this->load->model('extension/fraud/buyercheck');]]></add>
+    </operation>
+	<operation>
+        <search><![CDATA[
+            foreach ($results as $result) {
+         ]]></search>
+        <add position="after"><![CDATA[$buyercheck_info = $this->model_extension_fraud_buyercheck->getOrder($result['order_id']);
+
+
+			if ($buyercheck_info && isset($buyercheck_info['risk_score'])) {
+
+				$risk_score = $buyercheck_info['risk_score'];
+
+			} else {
+
+				$risk_score = 'N/A';
+
+			}]]></add>
+    </operation>
+	<operation>
+        <search><![CDATA[
+            'shipping_code' => $result['shipping_code'],
+         ]]></search>
+        <add position="after"><![CDATA['risk_score'    => $risk_score,]]></add>
+    </operation>
+	<operation>
+        <search><![CDATA[
+            $data['sort_total'] = $this->url->link('sale/order', 'user_token=' . $this->session->data['user_token'] . '&sort=o.total' . $url, true);
+         ]]></search>
+        <add position="after"><![CDATA[$data['sort_risk_score'] = $this->url->link('sale/order', 'user_token=' . $this->session->data['user_token'] . '&sort=risk_score' . $url, true);]]></add>
+    </operation>
+    </file>
+	<file path="admin/language/en-gb/sale/order.php">
+    <operation>
+        <search><![CDATA[
+            $_['column_action']              = 'Action';
+         ]]></search>
+        <add position="after"><![CDATA[$_['column_risk_score']          = 'Risk Score';]]></add>
+    </operation>
+    </file>
+	<file path="admin/view/template/sale/order_list.twig">
+    <operation>
+        <search><![CDATA[
+            <td class="text-left">{% if sort == 'order_status' %} <a href="{{ sort_status }}" class="{{ order|lower }}">{{ column_status }}</a> {% else %} <a href="{{ sort_status }}">{{ column_status }}</a> {% endif %}</td>
+         ]]></search>
+        <add position="after"><![CDATA[<td class="text-left">{% if sort == 'risk_score' %} <a href="{{ sort_risk_score }}" class="{{ order|lower }}">{{ column_risk_score }}</a> {% else %} <a href="{{ sort_risk_score }}">{{ column_risk_score }}</a> {% endif %}</td>]]></add>
+    </operation>
+	<operation>
+        <search><![CDATA[
+            <td class="text-left">{{ order.order_status }}</td>
+         ]]></search>
+        <add position="after"><![CDATA[<td class="text-left">{{ order.risk_score }}</td>]]></add>
+    </operation>
+    </file>
+    <file path="catalog/view/theme/default/template/checkout/checkout.twig">
+    <operation>
+    <search><![CDATA[
+        {{ footer }}
+     ]]></search>
+    <add position="before"><![CDATA[{% if buyercheck_enabled %}
+    {% if logged %}
+      <input type="hidden" id="input-logged-email" value="{{ customer_email }}" />
+      <input type="hidden" id="input-logged-phone" value="{{ customer_telephone }}" />
+      {% endif %}
+      
+<script type="text/javascript"><!--
+$(document).ready(function() {
+    function performRiskCheck() {
+        // Use a flag to prevent multiple concurrent requests
+        if ($('body').data('buyercheck-running')) {
+            return;
+        }
+
+        var email = $('#input-payment-email').val() || $('#input-guest-email').val() || $('#input-register-email').val() || $('#input-logged-email').val();
+        var phone = $('#input-payment-telephone').val() || $('#input-guest-telephone').val() || $('#input-register-telephone').val() || $('#input-logged-phone').val();
+
+        if (email || phone) {
+            $('body').data('buyercheck-running', true);
+            
+            var data = {};
+            if (email) data.email = email;
+            if (phone) data.phone = phone;
+
+            $.ajax({
+                url: 'index.php?route=extension/fraud/buyercheck/check_risk',
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                dataType: 'json',
+                success: function(json) {
+                    var codInput = $('input[name="payment_method"][value*="cod"]');
+                    if (json.hide_cod) {
+                        if (codInput.length) {
+                            codInput.closest('.radio').hide();
+                            if (codInput.is(':checked')) {
+                                // Check the first available payment method
+                                $('input[name="payment_method"]:visible').first().prop('checked', true).trigger('change');
+                            }
+                        }
+                    } else {
+                        // If not risky, ensure COD is visible
+                        if (codInput.length) {
+                            codInput.closest('.radio').show();
+                        }
+                    }
+                },
+                error: function(xhr, ajaxOptions, thrownError) {
+                    console.log('BuyerCheck Error:', thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+                },
+                complete: function() {
+                    $('body').data('buyercheck-running', false);
+                }
+            });
+        }
+    }
+
+    var debounceTimer;
+    function debouncedRiskCheck() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(performRiskCheck, 500);
+    }
+
+    // --- Event Handlers ---
+
+    // 1. On field change (blur)
+    $(document).on('blur', '#input-payment-email, #input-guest-email, #input-register-email, #input-payment-telephone, #input-guest-telephone, #input-register-telephone', debouncedRiskCheck);
+
+    // 2. On checkout step updates (AJAX completion)
+    // This covers initial load of forms (with pre-filled data) and updates to payment methods.
+    $(document).ajaxComplete(function(event, xhr, settings) {
+        if (settings && settings.url) {
+            var url = settings.url;
+            // List of checkout routes that can affect risk or load relevant fields/payment methods
+            var relevant_routes = [
+                'checkout/login',
+                'checkout/guest',
+                'checkout/register',
+                'checkout/payment_address',
+                'checkout/shipping_address',
+                'checkout/payment_method'
+            ];
+
+            var is_relevant = relevant_routes.some(function(route) {
+                return url.indexOf(route) > -1;
+            });
+
+            if (is_relevant) {
+                // A relevant checkout step has been loaded or updated.
+                debouncedRiskCheck();
+            }
+        }
+    });
+});
+//--></script>
+{% endif %}]]></add>
+</operation>
+    </file>
+    <file path="catalog/controller/checkout/checkout.php">
+    <operation>
+        <search><![CDATA[
+            $data['shipping_required'] = $this->cart->hasShipping();
+         ]]></search>
+        <add position="after"><![CDATA[$data['buyercheck_enabled'] = $this->config->get('fraud_buyercheck_status') && ($this->config->get('fraud_buyercheck_risky_action') == 'disable_cod');
+        
+        if ($this->customer->isLogged()) {
+            $data['customer_email'] = $this->customer->getEmail();
+            $data['customer_telephone'] = $this->customer->getTelephone();
+        } else {
+            $data['customer_email'] = '';
+            $data['customer_telephone'] = '';
+        }
+        ]]></add>
+    </operation>
+    </file>
+</modification>

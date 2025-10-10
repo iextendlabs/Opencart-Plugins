@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+	<code>buyercheck</code>
+	<name>buyercheck</name>
+	<version>1.0</version>
+	<author>buyercheck</author>
+	<link>https://buyercheck.bg</link>
+	<file path="admin/controller/sale/order.php">
+    <operation>
+        <search><![CDATA[
+            $order_total = $this->model_sale_order->getTotalOrders($filter_data);
+         ]]></search>
+        <add position="after"><![CDATA[$this->load->model('extension/fraud/buyercheck');]]></add>
+    </operation>
+	<operation>
+        <search><![CDATA[
+            foreach ($results as $result) {
+         ]]></search>
+        <add position="after"><![CDATA[$buyercheck_info = $this->model_extension_fraud_buyercheck->getOrder($result['order_id']);
+
+
+			if ($buyercheck_info && isset($buyercheck_info['risk_score'])) {
+
+				$risk_score = $buyercheck_info['risk_score'];
+
+			} else {
+
+				$risk_score = 'N/A';
+
+			}]]></add>
+    </operation>
+	<operation>
+        <search><![CDATA[
+            'shipping_code' => $result['shipping_code'],
+         ]]></search>
+        <add position="after"><![CDATA['risk_score'    => $risk_score,]]></add>
+    </operation>
+	<operation>
+        <search><![CDATA[
+            $data['sort_total'] = $this->url->link('sale/order', 'user_token=' . $this->session->data['user_token'] . '&sort=o.total' . $url, true);
+         ]]></search>
+        <add position="after"><![CDATA[$data['sort_risk_score'] = $this->url->link('sale/order', 'user_token=' . $this->session->data['user_token'] . '&sort=risk_score' . $url, true);]]></add>
+    </operation>
+    </file>
+	<file path="admin/language/en-gb/sale/order.php">
+    <operation>
+        <search><![CDATA[
+            $_['column_action']              = 'Action';
+         ]]></search>
+        <add position="after"><![CDATA[$_['column_risk_score']          = 'Risk Score';]]></add>
+    </operation>
+    </file>
+	<file path="admin/view/template/sale/order_list.twig">
+    <operation>
+        <search><![CDATA[
+            <td class="text-left">{% if sort == 'order_status' %} <a href="{{ sort_status }}" class="{{ order|lower }}">{{ column_status }}</a> {% else %} <a href="{{ sort_status }}">{{ column_status }}</a> {% endif %}</td>
+         ]]></search>
+        <add position="after"><![CDATA[<td class="text-left">{% if sort == 'risk_score' %} <a href="{{ sort_risk_score }}" class="{{ order|lower }}">{{ column_risk_score }}</a> {% else %} <a href="{{ sort_risk_score }}">{{ column_risk_score }}</a> {% endif %}</td>]]></add>
+    </operation>
+	<operation>
+        <search><![CDATA[
+            <td class="text-left">{{ order.order_status }}</td>
+         ]]></search>
+        <add position="after"><![CDATA[<td class="text-left">{{ order.risk_score }}</td>]]></add>
+    </operation>
+    </file>
+</modification>
